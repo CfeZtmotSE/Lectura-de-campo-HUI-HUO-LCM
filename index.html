@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lecturas de Campo · HUI / HUO / LCM</title>
+<style>
+  :root{
+    --bg:#0e1b22;
+    --panel:#16262f;
+    --panel2:#1d3340;
+    --line:#2c4a5a;
+    --accent:#ffb000;
+    --accent2:#5bc4d6;
+    --text:#e8eef0;
+    --muted:#9fb4bd;
+    --ok:#4caf6e;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Segoe UI',Roboto,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  header{
+    background:linear-gradient(135deg,var(--panel2),var(--panel));
+    border-bottom:3px solid var(--accent);
+    padding:22px 18px 18px;
+    position:sticky; top:0; z-index:50;
+  }
+  header h1{
+    margin:0; font-size:1.25rem; letter-spacing:.5px;
+    font-family:'Consolas','Courier New',monospace;
+    color:var(--accent);
+  }
+  header p{margin:4px 0 0; color:var(--muted); font-size:.85rem;}
+  .badge{
+    display:inline-block; margin-top:8px; padding:3px 10px;
+    border:1px solid var(--accent2); color:var(--accent2);
+    border-radius:3px; font-size:.7rem; letter-spacing:1px;
+    text-transform:uppercase; font-family:'Consolas',monospace;
+  }
+  main{max-width:760px; margin:0 auto; padding:18px 14px 90px;}
+  .section{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-left:4px solid var(--accent2);
+    border-radius:6px;
+    margin-bottom:16px;
+    overflow:hidden;
+  }
+  .section-head{
+    padding:12px 16px;
+    background:var(--panel2);
+    cursor:pointer;
+    display:flex; justify-content:space-between; align-items:center;
+    user-select:none;
+  }
+  .section-head h2{
+    margin:0; font-size:.95rem; font-weight:600;
+    font-family:'Consolas','Courier New',monospace;
+    letter-spacing:.5px;
+  }
+  .section-head .chev{color:var(--accent2); font-size:.8rem; transition:transform .2s;}
+  .section.collapsed .chev{transform:rotate(-90deg);}
+  .section-body{padding:14px 16px 18px;}
+  .section.collapsed .section-body{display:none;}
+
+  .grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px;}
+  .field{display:flex; flex-direction:column; gap:4px;}
+  .field label{
+    font-size:.72rem; color:var(--muted);
+    font-family:'Consolas','Courier New',monospace;
+    letter-spacing:.3px;
+  }
+  .tag{color:var(--accent); font-weight:700;}
+  input, select, textarea{
+    background:#0c1a21; border:1px solid var(--line); color:var(--text);
+    border-radius:4px; padding:9px 10px; font-size:.95rem; width:100%;
+    font-family:inherit;
+  }
+  .field-suffix-wrap{position:relative; display:flex; align-items:center;}
+  .field-suffix-wrap input{padding-right:26px;}
+  .field-suffix{
+    position:absolute; right:10px; color:var(--accent2);
+    font-size:.85rem; pointer-events:none;
+  }
+  input:focus, select:focus, textarea:focus{
+    outline:none; border-color:var(--accent2);
+    box-shadow:0 0 0 2px rgba(91,196,214,.15);
+  }
+  .equip-block{
+    border:1px dashed var(--line); border-radius:5px; padding:10px 12px; margin-bottom:10px;
+  }
+  .equip-block .equip-title{
+    font-family:'Consolas','Courier New',monospace; color:var(--accent2);
+    font-size:.85rem; margin-bottom:8px; font-weight:700; letter-spacing:.5px;
+  }
+  .estado-row{
+    display:flex; gap:14px; flex-wrap:wrap;
+    margin-bottom:10px; padding-bottom:8px;
+    border-bottom:1px solid var(--line);
+  }
+  .estado-opt{
+    display:flex; align-items:center; gap:5px;
+    font-size:.75rem; color:var(--muted); cursor:pointer;
+  }
+  .estado-opt input{width:auto; accent-color:var(--accent);}
+  .estado-opt-permitir{
+    margin-left:auto; color:var(--accent2);
+  }
+  .estado-opt-permitir input{accent-color:var(--accent2);}
+  .equip-block.estado-activo{
+    border-color:var(--accent); background:rgba(255,176,0,.06);
+  }
+  .equip-block input:read-only:not([data-estado]){
+    opacity:.7; background:#08131a; color:var(--accent);
+    font-family:'Consolas','Courier New',monospace; font-size:.75rem;
+    text-align:center; cursor:default;
+  }
+  .phase-row{display:grid; grid-template-columns:90px 1fr; gap:8px; align-items:center; margin-bottom:6px;}
+  .phase-row span{
+    font-family:'Consolas','Courier New',monospace; color:var(--muted); font-size:.8rem;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .small-note{color:var(--muted); font-size:.75rem; margin:0 0 10px;}
+  .header-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  @media(max-width:480px){.header-grid{grid-template-columns:1fr;}}
+
+  input.campo-error{
+    border-color:#ff5c5c !important;
+    background:rgba(255,92,92,.12) !important;
+    box-shadow:0 0 0 2px rgba(255,92,92,.25);
+    animation: parpadeoError 1s ease-in-out 2;
+  }
+  @keyframes parpadeoError{
+    0%, 100% { box-shadow:0 0 0 2px rgba(255,92,92,.25); }
+    50% { box-shadow:0 0 0 4px rgba(255,92,92,.55); }
+  }
+  .section-head.tiene-error{
+    background:rgba(255,92,92,.15);
+    border-left:3px solid #ff5c5c;
+  }
+  .section-head.tiene-error h2::after{
+    content:" ⚠ falta llenar";
+    color:#ff5c5c;
+    font-size:.7rem;
+    font-weight:400;
+  }
+  @media(max-width:600px){
+    header h1{font-size:1rem;}
+    .grid{grid-template-columns:1fr 1fr;}
+    .phase-row{grid-template-columns:80px 1fr;}
+    .estado-row{gap:8px;}
+    .estado-opt{font-size:.7rem;}
+    .estado-opt-permitir{margin-left:0; width:100%;}
+    main{padding:12px 8px 120px;}
+    .submit-bar{flex-direction:column; gap:6px; padding:8px 10px;}
+    .submit-bar button{padding:11px; font-size:.9rem;}
+    .status{font-size:.72rem; text-align:center;}
+    .section-head h2{font-size:.82rem;}
+  }
+  @media(max-width:380px){
+    .grid{grid-template-columns:1fr;}
+    .phase-row{grid-template-columns:70px 1fr;}
+    input, select{font-size:.85rem; padding:7px 8px;}
+  }
+  .submit-bar{
+    position:fixed; bottom:0; left:0; right:0;
+    background:var(--panel2); border-top:2px solid var(--accent);
+    padding:12px 14px; display:flex; gap:10px; align-items:center; z-index:60;
+  }
+  .submit-bar button{
+    flex:1; background:var(--accent); color:#1a1300; border:none;
+    font-weight:700; font-size:1rem; padding:13px; border-radius:5px;
+    cursor:pointer; letter-spacing:.5px;
+  }
+  .submit-bar button:disabled{opacity:.6; cursor:default;}
+  .status{font-size:.8rem; color:var(--muted); flex:1.4;}
+  .status.ok{color:var(--ok);}
+  .status.err{color:#ff6b6b;}
+
+  .overlay{
+    position:fixed; inset:0; background:rgba(8,15,19,.92);
+    display:flex; align-items:center; justify-content:center; z-index:100;
+    flex-direction:column; gap:14px; text-align:center; padding:20px;
+  }
+  .overlay.hidden{display:none;}
+  .overlay h2{color:var(--ok); font-family:'Consolas',monospace;}
+  .overlay button{
+    background:var(--accent2); border:none; color:#06222a; font-weight:700;
+    padding:12px 24px; border-radius:5px; cursor:pointer; font-size:1rem;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>⚡ LECTURAS DE CAMPO — HUINALA / HUINALA DOS / LA CAMISA</h1>
+  <p>CFE · Zona Transmisión Monterrey Oriente</p>
+  <span class="badge">Captura en sitio · Turno actual</span>
+  <span class="badge" style="margin-left:6px;border-color:#4caf6e;color:#4caf6e;">v2 - Estado en texto</span>
+</header>
+
+<main>
+  <form id="lecturaForm">
+
+    <!-- ===================== ENCABEZADO ===================== -->
+    <div class="section">
+      <div class="section-head"><h2>📋 Datos generales</h2><span class="chev">▾</span></div>
+      <div class="section-body">
+        <p class="small-note">Llena estos datos primero. Son obligatorios.</p>
+        <div class="header-grid">
+          <div class="field"><label>Fecha (automática)</label><input type="text" name="Fecha" id="campoFecha" readonly required></div>
+          <div class="field"><label>Hora de la lectura (automática)</label><input type="text" name="Hora" id="campoHora" readonly required></div>
+          <div class="field">
+            <label>Turno</label>
+            <select name="Turno" required>
+              <option value="">-- selecciona --</option>
+              <option>Matutino</option>
+              <option>Vespertino</option>
+            </select>
+          </div>
+          <div class="field"><label>Operador</label><input type="text" name="Operador" required></div>
+          <div class="field"><label>Ayudante</label><input type="text" name="Ayudante"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="dynamicSections"></div>
+
+    <!-- ===================== OBSERVACIONES ===================== -->
+    <div class="section">
+      <div class="section-head"><h2>📝 Observaciones</h2><span class="chev">▾</span></div>
+      <div class="section-body">
+        <div class="field">
+          <label>Notas / anomalías detectadas</label>
+          <textarea name="Observaciones" rows="3"></textarea>
+        </div>
+      </div>
+    </div>
+
+  </form>
+</main>
+
+<div class="submit-bar">
+  <div class="status" id="status">Llena los campos y envía. Se borrarán automáticamente al confirmar.</div>
+  <button id="sendBtn" type="button" onclick="enviar()">Enviar lectura</button>
+</div>
+
+
+
+<div class="overlay hidden" id="overlay">
+  <h2>✔ Lectura enviada</h2>
+  <p>Gracias. El formulario quedará vacío para el siguiente registro.</p>
+  <p id="overlayNota" style="color:#ffb000; font-size:.85rem;"></p>
+  <button onclick="cerrarOverlay()">Listo, nueva lectura</button>
+</div>
+
+<script>
+/* ============================================================
+   CONFIGURACIÓN: cambia este correo por el tuyo.
+   La PRIMERA vez que alguien envíe el formulario, FormSubmit
+   te enviará un correo de "activación" — debes darle click
+   para confirmar y a partir de ahí ya llegan todas las lecturas.
+   ============================================================ */
+const ENDPOINT = "https://api.web3forms.com/submit";
+const WEB3FORMS_KEY = "aac5c153-f05c-4f8c-87a1-b694b5d7114c";
+
+/* ============================================================
+   DEFINICIÓN DE EQUIPOS — agrega/edita aquí si falta algo
+   ============================================================ */
+const sections = [
+  {
+    title: "🔌 Interruptores 400 KV HUI — Gas SF6 y Operaciones",
+    type: "abc-double",
+    fieldsPerEquip: [["Gas SF6","gas"],["Operaciones","ops"]],
+    items: ["A3D10","A3D20","A2110","A3I10","A3740","A3H80","A2070","A7020","A9010","A4020"]
+  },
+  {
+    title: "🔌 Interruptores HUO — Operaciones y Presión SF6",
+    type: "abc-double",
+    fieldsPerEquip: [["Operaciones","ops"],["Presión SF6","psf6"]],
+    items: ["A9020","A9030","A1010","A8D10","A31D0","A4010","A1020","A3750","A8520"]
+  },
+  {
+    title: "🔋 Bancos de Baterías — HUI",
+    type: "battery",
+    items: [
+      ["BCO 1 250VCD — Caseta Ppal"],
+      ["BCO 2 250VCD — Caseta Ppal"],
+      ["BCO 3 125VCD — Caseta Ppal"],
+      ["BCO 4 250VCD — Caseta Aux"]
+    ]
+  },
+  {
+    title: "🔋 Bancos de Baterías — HUO",
+    type: "battery",
+    items: [["BCO 1 125VCD — Caseta HUO"],["BCO 2 125VCD — Caseta HUO"]]
+  },
+  {
+    title: "🔋 Bancos de Baterías — LCM",
+    type: "battery",
+    items: [["BCO 1 125VCD — Caseta LCM"],["BCO 2 125VCD — Caseta LCM"]]
+  },
+  {
+    title: "🛢 Planta de Emergencia S.E. HUI",
+    type: "simple",
+    items: [["Nivel Diesel Tanque 1","num","%"],["Nivel Diesel Tanque 2","num","%"]]
+  },
+  {
+    title: "🛢 Planta de Emergencia S.E. LCM",
+    type: "simple",
+    items: [["Nivel Diesel","num","%"]]
+  },
+  {
+    title: "🚧 La Camisa",
+    type: "camisa",
+    items: ["A3E50","A8050","A3E60","A8600"]
+  },
+  {
+    title: "🏭 Banco No. 7 — Transformación 400/230 KV, 375 MVA",
+    type: "banco",
+    phases: ["F-A","F-B","F-C","R"],
+    banco: "Banco 7"
+  },
+  {
+    title: "🏭 Banco No. 8 — Transformación 230/115 KV, 100 MVA",
+    type: "banco",
+    phases: ["F-A","F-B","F-C","R"],
+    banco: "Banco 8"
+  },
+  {
+    title: "🏭 Banco No. 9 — Transformación 230/115 KV, 100 MVA",
+    type: "banco",
+    phases: ["F-A","F-B","F-C"],
+    banco: "Banco 9"
+  },
+  {
+    title: "🏭 Banco No. 10 — Transformación 230/115 KV, 100 MVA",
+    type: "banco",
+    phases: ["F-A","F-B","F-C","R"],
+    banco: "Banco 10"
+  },
+  {
+    title: "🏭 Banco No. 11 — Transformación 400/230 KV, 375 MVA",
+    type: "banco",
+    phases: ["F-A","F-B","F-C"],
+    banco: "Banco 11"
+  },
+  {
+    title: "🏭 Banco No. 12 — Transformación 230/115 KV, 100 MVA",
+    type: "banco",
+    phases: ["F-A","F-B","F-C"],
+    banco: "Banco 12"
+  },
+  {
+    title: "🏭 Banco No. 13 — Transformación 230/115 KV, 100 MVA",
+    type: "banco",
+    phases: ["F-A","F-B","F-C","R"],
+    banco: "Banco 13"
+  },
+  {
+    title: "🌀 Reactores",
+    type: "reactor",
+    items: ["Reactor LT A3740 HUI","Reactor LT A3270 HUO"]
+  },
+  {
+    title: "🔌 Interruptores 115 KV",
+    type: "interr230",
+    items: ["71010","72080","72090","72100","72120","72130","73430","73450","73460",
+            "73920","73930","73980","73L90","73H90","77010","77020","79010"]
+  },
+  {
+    title: "🔌 Interruptores 230 KV",
+    type: "presion-banco13",
+    items: ["91030","91050","92070","92080","92090","92100","92110","92120","92130","93090","93790","97020","99010"]
+  }
+];
+
+/* ============================================================
+   GENERADORES DE CAMPOS
+   ============================================================ */
+function field(label, name, type="text", sufijo="", extraAttr=""){
+  // Usamos siempre type="text" para permitir letras (ej. "Fuera de Servicio"
+  // a mano, notas cortas, etc.), pero mantenemos teclado numérico sugerido.
+  const inputmode = type === "number" ? "decimal" : "text";
+  if(sufijo){
+    return `<div class="field"><label>${label}</label>
+      <div class="field-suffix-wrap">
+        <input type="text" name="${name}" inputmode="${inputmode}" ${extraAttr}>
+        <span class="field-suffix">${sufijo}</span>
+      </div></div>`;
+  }
+  return `<div class="field"><label>${label}</label>
+    <input type="text" name="${name}" inputmode="${inputmode}" ${extraAttr}></div>`;
+}
+
+function estadoHtml(id){
+  const grupo = `${id} - Estado`;
+  const opciones = ["Mantenimiento","Modernizacion","Fuera de Servicio"];
+  return `<div class="estado-row">
+    ${opciones.map(op=>`
+      <label class="estado-opt">
+        <input type="radio" name="${grupo}" value="${op==='Modernizacion'?'Modernización':op}" data-estado="1">
+        <span>${op==='Modernizacion'?'Modernización':op}</span>
+      </label>`).join("")}
+    <label class="estado-opt estado-opt-permitir">
+      <input type="checkbox" data-permitir="1">
+      <span>Permitir capturar valores</span>
+    </label>
+  </div>`;
+}
+
+function estadoHtmlSimple(id){
+  const grupo = `${id} - Estado`;
+  const opciones = ["Mantenimiento","Modernizacion","Fuera de Servicio"];
+  return `<div class="estado-row">
+    ${opciones.map(op=>`
+      <label class="estado-opt">
+        <input type="radio" name="${grupo}" value="${op==='Modernizacion'?'Modernización':op}" data-estado="1">
+        <span>${op==='Modernizacion'?'Modernización':op}</span>
+      </label>`).join("")}
+  </div>`;
+}
+
+function buildABCDouble(sec){
+  let html = '<div class="grid">';
+  sec.items.forEach(code=>{
+    html += `<div class="equip-block" style="grid-column:1/-1">
+      <div class="equip-title">${code}</div>
+      ${estadoHtml(code)}`;
+    sec.fieldsPerEquip.forEach(([label,key])=>{
+      const esOperaciones = key === "ops";
+      html += `<div class="phase-row"><span>${label}</span><div class="grid" style="grid-template-columns:repeat(3,1fr)">`;
+      ["A","B","C"].forEach(ph=>{
+        html += field(ph, `${code} - ${label} - Fase ${ph}`,"number","", esOperaciones ? 'data-operaciones="1"' : "");
+      });
+      html += `</div></div>`;
+    });
+    html += `</div>`;
+  });
+  html += '</div>';
+  return html;
+}
+
+function buildBattery(sec){
+  let html = '<div class="grid">';
+  sec.items.forEach(([name])=>{
+    html += `<div class="equip-block" style="grid-column:1/-1">
+      <div class="equip-title">${name}</div>
+      ${estadoHtmlSimple(name)}
+      <div class="grid" style="grid-template-columns:repeat(2,1fr)">
+        ${field("Volts", `${name} - Volts`,"number")}
+        ${field("Amp", `${name} - Amp`,"number")}
+      </div></div>`;
+  });
+  html += '</div>';
+  return html;
+}
+
+function buildSimple(sec){
+  let html = '<div class="grid">';
+  sec.items.forEach(([label,type,sufijo])=>{
+    html += field(label, label, type==="num"?"number":"text", sufijo||"");
+  });
+  html += '</div>';
+  return html;
+}
+
+function buildCamisa(sec){
+  let html = '';
+  sec.items.forEach(code=>{
+    html += `<div class="equip-block">
+      <div class="equip-title">${code}</div>
+      ${estadoHtml(code)}
+      <div class="phase-row"><span>Pres. Gas</span><div class="grid" style="grid-template-columns:repeat(3,1fr)">
+        ${["P1","P2","P3"].map(p=>field(p,`${code} - Presion Gas - ${p}`,"number")).join("")}
+      </div></div>
+      <div class="phase-row"><span>Operac.</span><div class="grid" style="grid-template-columns:repeat(3,1fr)">
+        ${["P1","P2","P3"].map(p=>field(p,`${code} - Operaciones - ${p}`,"number","",'data-operaciones="1"')).join("")}
+      </div></div>
+      <div class="grid" style="grid-template-columns:1fr">
+        ${field("Presión de Aire", `${code} - Presion de Aire`,"number")}
+      </div>
+    </div>`;
+  });
+  return html;
+}
+
+function buildBanco(sec){
+  let html = '';
+  sec.phases.forEach(ph=>{
+    html += `<div class="equip-block">
+      <div class="equip-title">${sec.banco} — ${ph}</div>
+      ${estadoHtml(`${sec.banco} ${ph}`)}
+      <div class="grid" style="grid-template-columns:repeat(2,1fr)">
+        ${field("N. Aceite", `${sec.banco} ${ph} - N. Aceite`,"number","%",'data-aceite="1"')}
+        ${field("Temp. Aceite", `${sec.banco} ${ph} - Temp Aceite`,"number")}
+        ${field("Temp. Devanado", `${sec.banco} ${ph} - Temp Dev`,"number")}
+        ${field("Abanicos (encendidos)", `${sec.banco} ${ph} - Abanicos`,"number")}
+        ${field("Pos. Tap", `${sec.banco} ${ph} - Pos Tap`,"number")}
+        ${field("Nivel Cambiador", `${sec.banco} ${ph} - Nivel Cambiador`,"number")}
+        ${field("No. Op. Cambio Taps", `${sec.banco} ${ph} - No Op Cambio Taps`,"number","",'data-operaciones="1"')}
+      </div></div>`;
+  });
+  return html;
+}
+
+function buildReactor(sec){
+  let html = '';
+  sec.items.forEach(name=>{
+    html += `<div class="equip-block">
+      <div class="equip-title">${name}</div>
+      ${estadoHtml(name)}
+      <div class="grid" style="grid-template-columns:repeat(3,1fr)">
+        ${field("N. Aceite", `${name} - N Aceite`,"number","%",'data-aceite="1"')}
+        ${field("Temp. Aceite", `${name} - Temp Aceite`,"number")}
+        ${field("Temp. Dev.", `${name} - Temp Dev`,"number")}
+      </div></div>`;
+  });
+  return html;
+}
+
+function buildInterr230(sec){
+  let html = '';
+  sec.items.forEach(code=>{
+    if(code === "Horas Compresor"){
+      html += `<div class="equip-block">
+        <div class="equip-title">${code}</div>
+        <div class="grid" style="grid-template-columns:1fr">
+          ${field("Horas", "Horas Compresor","number")}
+        </div></div>`;
+      return;
+    }
+    html += `<div class="equip-block">
+      <div class="equip-title">Interruptor ${code}</div>
+      ${estadoHtml(`Interr ${code}`)}
+      <div class="grid" style="grid-template-columns:repeat(2,1fr)">
+        ${field("Presión SF6", `Interr ${code} - Presion SF6`,"number")}
+        ${field("No. Operaciones", `Interr ${code} - No Operaciones`,"number","",'data-operaciones="1"')}
+      </div>
+    </div>`;
+  });
+  return html;
+}
+
+function buildPresionBanco13(sec){
+  let html = '';
+  sec.items.forEach(code=>{
+    html += `<div class="equip-block">
+      <div class="equip-title">${code}</div>
+      ${estadoHtml(code)}
+      <div class="phase-row"><span>Pres. Gas</span><div class="grid" style="grid-template-columns:repeat(3,1fr)">
+        ${["A","B","C"].map(p=>field(p,`${code} - Presion Gas - ${p}`,"number")).join("")}
+      </div></div>
+      <div class="phase-row"><span>No. Oper.</span><div class="grid" style="grid-template-columns:repeat(3,1fr)">
+        ${["A","B","C"].map(p=>field(p,`${code} - No Operaciones - ${p}`,"number","",'data-operaciones="1"')).join("")}
+      </div></div>
+    </div>`;
+  });
+  return html;
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+const builders = {
+  "abc-double": buildABCDouble,
+  "battery": buildBattery,
+  "simple": buildSimple,
+  "camisa": buildCamisa,
+  "banco": buildBanco,
+  "reactor": buildReactor,
+  "interr230": buildInterr230,
+  "presion-banco13": buildPresionBanco13
+};
+
+/* ============================================================
+   FECHA Y HORA AUTOMÁTICAS (no editables)
+   ============================================================ */
+function actualizarFechaHora(){
+  const now = new Date();
+  const pad = n => String(n).padStart(2,"0");
+  document.getElementById("campoFecha").value =
+    `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+  document.getElementById("campoHora").value =
+    `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+}
+actualizarFechaHora();
+setInterval(actualizarFechaHora, 30000);
+
+const container = document.getElementById("dynamicSections");
+sections.forEach((sec, idx)=>{
+  const div = document.createElement("div");
+  div.className = "section collapsed";
+  div.innerHTML = `
+    <div class="section-head" onclick="this.parentElement.classList.toggle('collapsed')">
+      <h2>${sec.title}</h2><span class="chev">▾</span>
+    </div>
+    <div class="section-body">${builders[sec.type](sec)}</div>
+  `;
+  container.appendChild(div);
+});
+
+/* ============================================================
+   ESTADO ESPECIAL (Mantenimiento / Modernización / Fuera de Servicio)
+   - Selección única (toggle: clic de nuevo lo desmarca)
+   - Al marcar, deshabilita y limpia los campos numéricos del bloque
+   ============================================================ */
+const estadoSeleccionado = {};
+
+document.addEventListener("click", e=>{
+  const r = e.target.closest('input[type="radio"][data-estado]');
+  if(!r) return;
+
+  const bloque = r.closest(".equip-block");
+  const nombreGrupo = r.name;
+
+  if(estadoSeleccionado[nombreGrupo] === r.value){
+    r.checked = false;
+    delete estadoSeleccionado[nombreGrupo];
+    const chkPermitir = bloque.querySelector('input[data-permitir]');
+    if(chkPermitir) chkPermitir.checked = false;
+    habilitarBloque(bloque);
+  } else {
+    estadoSeleccionado[nombreGrupo] = r.value;
+    deshabilitarBloque(bloque, r.value);
+    // Si "Permitir capturar valores" ya estaba activo, vuelve a liberar Operaciones
+    const chkPermitir = bloque.querySelector('input[data-permitir]');
+    if(chkPermitir && chkPermitir.checked){
+      bloque.querySelectorAll('input[data-operaciones]').forEach(inp=>{
+        inp.readOnly = false;
+        inp.value = "";
+      });
+    }
+  }
+});
+
+document.addEventListener("change", e=>{
+  const chk = e.target.closest('input[type="checkbox"][data-permitir]');
+  if(!chk) return;
+  const bloque = chk.closest(".equip-block");
+  const campos = bloque.querySelectorAll('input[data-operaciones]');
+  if(chk.checked){
+    campos.forEach(inp=>{ inp.readOnly = false; inp.value = ""; });
+  } else {
+    const radioActivo = bloque.querySelector('input[data-estado]:checked');
+    const valor = radioActivo ? radioActivo.value : "";
+    campos.forEach(inp=>{ inp.readOnly = true; inp.value = valor; });
+  }
+});
+
+function deshabilitarBloque(bloque, valor){
+  bloque.classList.add("estado-activo");
+  bloque.querySelectorAll('input:not([data-estado]):not([data-permitir]):not([data-aceite])').forEach(inp=>{
+    inp.value = valor;
+    inp.readOnly = true;
+  });
+}
+
+function habilitarBloque(bloque){
+  bloque.classList.remove("estado-activo");
+  bloque.querySelectorAll('input:not([data-estado]):not([data-permitir]):not([data-aceite])').forEach(inp=>{
+    inp.value = "";
+    inp.readOnly = false;
+  });
+}
+
+document.addEventListener("input", e=>{
+  const inp = e.target;
+  if(inp.classList && inp.classList.contains("campo-error")){
+    const val = (inp.value || "").trim();
+    if(val.length >= 2 || inp.tagName === "TEXTAREA" && val.length >= 2){
+      inp.classList.remove("campo-error");
+      const seccion = inp.closest(".section");
+      if(seccion && !seccion.querySelector(".campo-error")){
+        const head = seccion.querySelector(".section-head");
+        if(head) head.classList.remove("tiene-error");
+      }
+    }
+  }
+});
+
+/* ============================================================
+   ENVÍO
+   ============================================================ */
+async function enviar(){
+  const form = document.getElementById("lecturaForm");
+  const statusEl = document.getElementById("status");
+  const btn = document.getElementById("sendBtn");
+
+  // Limpiar marcas de error previas
+  form.querySelectorAll(".campo-error").forEach(el=>el.classList.remove("campo-error"));
+  document.querySelectorAll(".section-head.tiene-error").forEach(el=>el.classList.remove("tiene-error"));
+
+  // Validar campos obligatorios del encabezado
+  const required = form.querySelectorAll("[required]");
+  for(const r of required){
+    if(!r.value){
+      statusEl.textContent = "⚠ Falta llenar: " + (r.previousElementSibling.textContent);
+      statusEl.className = "status err";
+      r.classList.add("campo-error");
+      r.scrollIntoView({behavior:"smooth", block:"center"});
+      r.focus();
+      return;
+    }
+  }
+
+  // Validar TODOS los campos de texto (lecturas de equipos + observaciones):
+  // deben tener al menos 2 caracteres. No deben estar vacíos ni tener solo 1.
+  const camposTexto = form.querySelectorAll('input[type="text"]:not([data-estado])');
+  let primerError = null;
+  camposTexto.forEach(inp=>{
+    const valor = inp.value.trim();
+    if(valor.length < 2){
+      inp.classList.add("campo-error");
+      const seccion = inp.closest(".section");
+      if(seccion){
+        const head = seccion.querySelector(".section-head");
+        if(head) head.classList.add("tiene-error");
+      }
+      if(!primerError) primerError = inp;
+    }
+  });
+  if(primerError){
+    statusEl.textContent = "⚠ Hay campos sin llenar correctamente (resaltados en rojo). Revisa las secciones marcadas con ⚠.";
+    statusEl.className = "status err";
+    primerError.closest(".section")?.classList.remove("collapsed");
+    primerError.scrollIntoView({behavior:"smooth", block:"center"});
+    primerError.focus();
+    return;
+  }
+
+  const observ = form.querySelector('textarea[name="Observaciones"]');
+  if(observ && observ.value.trim().length < 2){
+    observ.classList.add("campo-error");
+    statusEl.textContent = "⚠ Falta llenar Observaciones (mínimo 2 caracteres)";
+    statusEl.className = "status err";
+    observ.scrollIntoView({behavior:"smooth", block:"center"});
+    observ.focus();
+    return;
+  }
+
+  btn.disabled = true;
+  statusEl.textContent = "Enviando...";
+  statusEl.className = "status";
+
+  actualizarFechaHora();
+  const formData = new FormData(form);
+  formData.append("access_key", WEB3FORMS_KEY);
+  formData.append("subject", `Lectura de campo HUI/HUO/LCM - ${formData.get("Fecha")} - Turno ${formData.get("Turno")}`);
+
+  try{
+    const res = await fetch(ENDPOINT, {
+      method: "POST",
+      headers: {"Accept":"application/json"},
+      body: formData
+    });
+    const data = await res.json();
+    if(res.ok && data.success){
+      // Generar PDF
+      const datosObj = {};
+      for(const [k,v] of formData.entries()) datosObj[k] = v;
+      await generarPDF(datosObj);
+
+      document.getElementById("overlay").classList.remove("hidden");
+    } else {
+      statusEl.textContent = "✖ Error al enviar. Revisa tu conexión e intenta de nuevo.";
+      statusEl.className = "status err";
+    }
+  }catch(err){
+    statusEl.textContent = "✖ Error de red. Intenta de nuevo.";
+    statusEl.className = "status err";
+  }
+  btn.disabled = false;
+}
+
+function cerrarOverlay(){
+  const form = document.getElementById("lecturaForm");
+  document.activeElement.blur();
+  document.querySelectorAll(".equip-block.estado-activo").forEach(habilitarBloque);
+  document.querySelectorAll('input[data-permitir]').forEach(c=>c.checked=false);
+  Object.keys(estadoSeleccionado).forEach(k=>delete estadoSeleccionado[k]);
+  form.reset();
+  actualizarFechaHora();
+  document.getElementById("overlay").classList.add("hidden");
+  document.getElementById("status").textContent = "Llena los campos y envía. Se borrarán automáticamente al confirmar.";
+  document.getElementById("status").className = "status";
+  document.querySelectorAll(".section").forEach(s=>s.classList.add("collapsed"));
+  window.scrollTo({top:0, behavior:"smooth"});
+}
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
+<script>
+async function generarPDF(datos){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation:"portrait", unit:"mm", format:"letter" });
+  const PW = 215.9, PH = 279.4;
+  const ML = 12, MR = 12, MT = 14, MB = 14;
+  const W = PW - ML - MR;
+
+  // ---- colores CFE ----
+  const VERDE   = [0, 104, 56];
+  const OSCURO  = [20, 40, 30];
+  const GRIS    = [245, 245, 245];
+  const GRISL   = [220, 220, 220];
+
+  // ============ PORTADA ============
+  // Franja verde superior
+  doc.setFillColor(...VERDE);
+  doc.rect(0, 0, PW, 28, "F");
+
+  // Logo CFE (texto simulado — sin imagen para no depender de red)
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(20); doc.setFont("helvetica","bold");
+  doc.text("CFE", ML, 12);
+  doc.setFontSize(7); doc.setFont("helvetica","normal");
+  doc.text("Comisión Federal de Electricidad", ML, 17);
+
+  doc.setFontSize(11); doc.setFont("helvetica","bold");
+  doc.text("ZONA TRANSMISIÓN MONTERREY ORIENTE", PW/2, 11, {align:"center"});
+  doc.setFontSize(9); doc.setFont("helvetica","normal");
+  doc.text("Lecturas de Campo  ·  Huinalá / Huinalá Dos / La Camisa", PW/2, 17, {align:"center"});
+
+  // Datos de encabezado
+  let y = 36;
+  const encabezados = [
+    ["Fecha",    datos["Fecha"]||""],
+    ["Hora",     datos["Hora"]||""],
+    ["Turno",    datos["Turno"]||""],
+    ["Operador", datos["Operador"]||""],
+    ["Ayudante", datos["Ayudante"]||""],
+  ];
+  doc.autoTable({
+    startY: y,
+    margin:{left:ML, right:MR},
+    theme:"grid",
+    styles:{fontSize:9, cellPadding:2.5},
+    columnStyles:{0:{fillColor:GRIS, fontStyle:"bold", cellWidth:35}, 1:{cellWidth:W-35}},
+    body: encabezados,
+  });
+  y = doc.lastAutoTable.finalY + 4;
+
+  // Observaciones en portada
+  doc.setFontSize(8); doc.setFont("helvetica","bold"); doc.setTextColor(...OSCURO);
+  doc.text("OBSERVACIONES:", ML, y+4);
+  doc.setFont("helvetica","normal");
+  const obsLines = doc.splitTextToSize(datos["Observaciones"]||"(Sin observaciones)", W);
+  doc.setFontSize(8);
+  doc.text(obsLines, ML, y+9);
+
+  // Pie portada
+  doc.setFillColor(...VERDE);
+  doc.rect(0, PH-10, PW, 10, "F");
+  doc.setTextColor(255,255,255); doc.setFontSize(7);
+  doc.text(`Generado: ${datos["Fecha"]||""} ${datos["Hora"]||""}  ·  Turno: ${datos["Turno"]||""}`, ML, PH-3.5);
+
+  // ============ FUNCIÓN HELPER: tabla de sección ============
+  function seccionTabla(titulo, filas, yInicio, colWidths){
+    // Encabezado de sección
+    doc.setFillColor(...VERDE);
+    doc.rect(ML, yInicio, W, 6, "F");
+    doc.setTextColor(255,255,255); doc.setFontSize(8); doc.setFont("helvetica","bold");
+    doc.text(titulo, ML+2, yInicio+4.2);
+
+    doc.setTextColor(...OSCURO);
+    doc.autoTable({
+      startY: yInicio+6,
+      margin:{left:ML, right:MR},
+      theme:"grid",
+      styles:{fontSize:6.5, cellPadding:1.8, overflow:"linebreak"},
+      headStyles:{fillColor:GRISL, textColor:OSCURO, fontStyle:"bold", fontSize:6.5},
+      bodyStyles:{textColor:[40,40,40]},
+      columnStyles: colWidths||{},
+      ...filas,
+    });
+    return doc.lastAutoTable.finalY + 3;
+  }
+
+  // ============ PÁGINA 2: Interruptores ============
+  doc.addPage();
+
+  // Franja de sección
+  doc.setFillColor(...VERDE);
+  doc.rect(0, 0, PW, 8, "F");
+  doc.setTextColor(255,255,255); doc.setFontSize(9); doc.setFont("helvetica","bold");
+  doc.text("INTERRUPTORES 400 KV HUI — GAS SF6 y OPERACIONES", PW/2, 5.5, {align:"center"});
+  doc.setTextColor(...OSCURO);
+
+  y = 12;
+  const interrHUI = ["A3D10","A3D20","A2110","A3I10","A3740","A3H80","A2070","A7020","A9010","A4020"];
+  const interrHUO = ["A9020","A9030","A1010","A8D10","A31D0","A4010","A1020","A3750","A8520"];
+
+  function buildInterrRows(codigos, tipo1, tipo2){
+    const head = [[" Código","Tipo","Fase A","Fase B","Fase C"]];
+    const body = [];
+    codigos.forEach(code=>{
+      [[tipo1,"gas"],[tipo2,"ops"]].forEach(([lbl])=>{
+        const fA = datos[`${code} - ${lbl} - Fase A`]||"";
+        const fB = datos[`${code} - ${lbl} - Fase B`]||"";
+        const fC = datos[`${code} - ${lbl} - Fase C`]||"";
+        body.push([code, lbl, fA, fB, fC]);
+      });
+    });
+    return {head, body};
+  }
+
+  y = seccionTabla("INTERRUPTORES 400 KV HUI — Gas SF6 y Operaciones",
+    buildInterrRows(interrHUI,"Gas SF6","Operaciones"), y,
+    {0:{cellWidth:22},1:{cellWidth:28},2:{cellWidth:20},3:{cellWidth:20},4:{cellWidth:20}});
+
+  y = seccionTabla("INTERRUPTORES HUO — Operaciones y Presión SF6",
+    buildInterrRows(interrHUO,"Operaciones","Presión SF6"), y,
+    {0:{cellWidth:22},1:{cellWidth:28},2:{cellWidth:20},3:{cellWidth:20},4:{cellWidth:20}});
+
+  // Bancos de Baterías
+  const bats = [
+    ["BCO 1 250VCD — Caseta Ppal - Volts","BCO 1 250VCD — Caseta Ppal - Amp","BCO 1 250VCD Caseta Ppal"],
+    ["BCO 2 250VCD — Caseta Ppal - Volts","BCO 2 250VCD — Caseta Ppal - Amp","BCO 2 250VCD Caseta Ppal"],
+    ["BCO 3 125VCD — Caseta Ppal - Volts","BCO 3 125VCD — Caseta Ppal - Amp","BCO 3 125VCD Caseta Ppal"],
+    ["BCO 4 250VCD — Caseta Aux - Volts","BCO 4 250VCD — Caseta Aux - Amp","BCO 4 250VCD Caseta Aux"],
+    ["BCO 1 125VCD — Caseta HUO - Volts","BCO 1 125VCD — Caseta HUO - Amp","BCO 1 125VCD HUO"],
+    ["BCO 2 125VCD — Caseta HUO - Volts","BCO 2 125VCD — Caseta HUO - Amp","BCO 2 125VCD HUO"],
+    ["BCO 1 125VCD — Caseta LCM - Volts","BCO 1 125VCD — Caseta LCM - Amp","BCO 1 125VCD LCM"],
+    ["BCO 2 125VCD — Caseta LCM - Volts","BCO 2 125VCD — Caseta LCM - Amp","BCO 2 125VCD LCM"],
+  ];
+  const batBody = bats.map(([kV,kA,nombre])=>[nombre, datos[kV]||"", datos[kA]||""]);
+  y = seccionTabla("BANCOS DE BATERÍAS",
+    {head:[["Banco","Volts","Amp"]], body:batBody}, y,
+    {0:{cellWidth:60},1:{cellWidth:20},2:{cellWidth:20}});
+
+  // Planta de emergencia
+  y = seccionTabla("PLANTA EMERGENCIA",{head:[["","Nivel Diesel (%)"]],body:[
+    ["S.E. HUI — Tanque 1", datos["Nivel Diesel Tanque 1"]||""],
+    ["S.E. HUI — Tanque 2", datos["Nivel Diesel Tanque 2"]||""],
+    ["S.E. LCM",            datos["Nivel Diesel"]||""],
+  ]}, y, {0:{cellWidth:60}});
+
+  // La Camisa
+  const camisaCods = ["A3E50","A8050","A3E60","A8600"];
+  const camisaBody = camisaCods.map(c=>[
+    c,
+    datos[`${c} - Presion Gas - P1`]||"", datos[`${c} - Presion Gas - P2`]||"", datos[`${c} - Presion Gas - P3`]||"",
+    datos[`${c} - Operaciones - P1`]||"", datos[`${c} - Operaciones - P2`]||"", datos[`${c} - Operaciones - P3`]||"",
+    datos[`${c} - Presion de Aire`]||"",
+  ]);
+  y = seccionTabla("LA CAMISA",{
+    head:[["Código","P.Gas P1","P.Gas P2","P.Gas P3","Oper P1","Oper P2","Oper P3","P.Aire"]],
+    body: camisaBody
+  }, y, {0:{cellWidth:18}});
+
+  // ============ PÁGINA 3: Bancos y Reactores ============
+  doc.addPage();
+  doc.setFillColor(...VERDE);
+  doc.rect(0,0,PW,8,"F");
+  doc.setTextColor(255,255,255); doc.setFontSize(9); doc.setFont("helvetica","bold");
+  doc.text("BANCOS DE TRANSFORMACIÓN, REACTORES E INTERRUPTORES 115/230 KV", PW/2, 5.5, {align:"center"});
+  doc.setTextColor(...OSCURO);
+  y = 12;
+
+  // Bancos 7-13
+  const bancos = [
+    {n:"7", fases:["F-A","F-B","F-C","R"]},
+    {n:"8", fases:["F-A","F-B","F-C","R"]},
+    {n:"9", fases:["F-A","F-B","F-C"]},
+    {n:"10", fases:["F-A","F-B","F-C","R"]},
+    {n:"11", fases:["F-A","F-B","F-C"]},
+    {n:"12", fases:["F-A","F-B","F-C"]},
+    {n:"13", fases:["F-A","F-B","F-C","R"]},
+  ];
+
+  const bancoBody = [];
+  bancos.forEach(b=>{
+    b.fases.forEach(ph=>{
+      const pre = `Banco ${b.n} ${ph}`;
+      bancoBody.push([
+        `B${b.n} ${ph}`,
+        datos[`${pre} - N. Aceite`]||"",
+        datos[`${pre} - Temp Aceite`]||"",
+        datos[`${pre} - Temp Dev`]||"",
+        datos[`${pre} - Abanicos`]||"",
+        datos[`${pre} - Pos Tap`]||"",
+        datos[`${pre} - Nivel Cambiador`]||"",
+        datos[`${pre} - No Op Cambio Taps`]||"",
+      ]);
+    });
+  });
+  y = seccionTabla("BANCOS DE TRANSFORMACIÓN (7 al 13)",{
+    head:[["Banco","N.Aceite%","T.Aceite","T.Dev","Aban","Pos.Tap","Niv.Camb","NoOpTaps"]],
+    body:bancoBody
+  }, y, {0:{cellWidth:16}});
+
+  // Reactores
+  const reactores = ["Reactor LT A3740 HUI","Reactor LT A3270 HUO"];
+  const reactBody = reactores.map(r=>[r,
+    datos[`${r} - N Aceite`]||"",
+    datos[`${r} - Temp Aceite`]||"",
+    datos[`${r} - Temp Dev`]||"",
+  ]);
+  y = seccionTabla("REACTORES",{
+    head:[["Reactor","N.Aceite%","Temp Aceite","Temp Dev"]],
+    body:reactBody
+  }, y, {0:{cellWidth:55}});
+
+  // Interruptores 115 KV
+  const i115 = ["71010","72080","72090","72100","72120","72130","73430","73450",
+                 "73460","73920","73930","73980","73L90","73H90","77010","77020","79010"];
+  const i115Body = i115.map(c=>[c, datos[`Interr ${c} - Presion SF6`]||"", datos[`Interr ${c} - No Operaciones`]||""]);
+  y = seccionTabla("INTERRUPTORES 115 KV",{
+    head:[["Interruptor","Presión SF6","No. Operaciones"]],
+    body:i115Body
+  }, y, {0:{cellWidth:30}});
+
+  // Interruptores 230 KV
+  const i230 = ["91030","91050","92070","92080","92090","92100","92110","92120","92130","93090","93790","97020","99010"];
+  const i230Body = [];
+  i230.forEach(c=>{
+    ["A","B","C"].forEach(f=>{
+      i230Body.push([c, f,
+        datos[`${c} - Presion Gas - ${f}`]||"",
+        datos[`${c} - No Operaciones - ${f}`]||"",
+      ]);
+    });
+  });
+  y = seccionTabla("INTERRUPTORES 230 KV",{
+    head:[["Interr","Fase","Presión Gas","No. Operaciones"]],
+    body:i230Body
+  }, y, {0:{cellWidth:22},1:{cellWidth:12}});
+
+  // Pie de páginas
+  const totalPags = doc.internal.getNumberOfPages();
+  for(let p=1; p<=totalPags; p++){
+    doc.setPage(p);
+    doc.setFillColor(...VERDE);
+    doc.rect(0, PH-8, PW, 8, "F");
+    doc.setTextColor(255,255,255); doc.setFontSize(6.5); doc.setFont("helvetica","normal");
+    doc.text(`Página ${p} de ${totalPags}  ·  CFE Zona Transmisión Monterrey Oriente`, ML, PH-2.5);
+    doc.text(`Fecha: ${datos["Fecha"]||""}  Turno: ${datos["Turno"]||""}  Operador: ${datos["Operador"]||""}`, PW-MR, PH-2.5, {align:"right"});
+  }
+
+  // Nombre del archivo
+  const fechaStr = (datos["Fecha"]||"sin-fecha").replace(/\//g,"-");
+  const turnoStr = (datos["Turno"]||"sin-turno");
+  const operadorStr = (datos["Operador"]||"").replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ ]/g,"").trim();
+  const ayudanteStr = (datos["Ayudante"]||"").replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ ]/g,"").trim();
+  const nombreArchivo = `Reporte de Lectura-${fechaStr}-${turnoStr}-${operadorStr}-${ayudanteStr}.pdf`;
+
+  // Convertir a base64 y enviar por correo (lo guarda el script de Apps Script en Drive)
+  const pdfBase64 = doc.output("datauristring").split(",")[1];
+
+  const fdPdf = new FormData();
+  fdPdf.append("access_key", WEB3FORMS_KEY);
+  fdPdf.append("subject", "PDF_LECTURA_HUI");
+  fdPdf.append("nombre_archivo", nombreArchivo);
+  fdPdf.append("pdf_base64", pdfBase64);
+  fdPdf.append("Fecha", datos["Fecha"]||"");
+  fdPdf.append("Turno", datos["Turno"]||"");
+  fdPdf.append("Operador", datos["Operador"]||"");
+  fdPdf.append("Ayudante", datos["Ayudante"]||"");
+
+  await fetch("https://api.web3forms.com/submit", {
+    method: "POST",
+    headers: {"Accept":"application/json"},
+    body: fdPdf
+  }).catch(()=>{});
+}
+</script>
+
+</body>
+</html>
