@@ -1057,6 +1057,7 @@ async function generarPDF(datos){
   const fdPdf = new FormData();
   fdPdf.append("access_key", WEB3FORMS_KEY);
   fdPdf.append("subject", "PDF_LECTURA_HUI");
+  fdPdf.append("_unique", Date.now() + "-" + Math.random().toString(36).slice(2));
   fdPdf.append("nombre_archivo", nombreArchivo);
   fdPdf.append("pdf_base64", pdfBase64);
   fdPdf.append("Fecha", datos["Fecha"]||"");
