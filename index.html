@@ -12,8 +12,8 @@
     --line:#c8ddd0;
     --accent:#00843D;
     --accent2:#78BE20;
-    --text:#1a3a2a;
-    --muted:#5a7a6a;
+    --text:#1a1a1a;
+    --muted:#444444;
     --ok:#00843D;
   }
   *{box-sizing:border-box;}
@@ -128,7 +128,7 @@
   .section-head h2{
     margin:0; font-size:.95rem; font-weight:600;
     font-family:'Consolas','Courier New',monospace;
-    letter-spacing:.5px;
+    letter-spacing:.5px; color:#1a1a1a;
   }
   .section-head .chev{color:var(--accent2); font-size:.8rem; transition:transform .2s;}
   .section.collapsed .chev{transform:rotate(-90deg);}
@@ -138,13 +138,13 @@
   .grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px;}
   .field{display:flex; flex-direction:column; gap:4px;}
   .field label{
-    font-size:.72rem; color:var(--muted);
+    font-size:.72rem; color:#333333;
     font-family:'Consolas','Courier New',monospace;
     letter-spacing:.3px;
   }
   .tag{color:var(--accent); font-weight:700;}
   input, select, textarea{
-    background:#f5faf7; border:1px solid var(--line); color:var(--text);
+    background:#f5faf7; border:1px solid var(--line); color:#1a1a1a;
     border-radius:4px; padding:9px 10px; font-size:.95rem; width:100%;
     font-family:inherit;
   }
@@ -162,7 +162,7 @@
     border:1px dashed var(--line); border-radius:5px; padding:10px 12px; margin-bottom:10px; background:#fafcfb;
   }
   .equip-block .equip-title{
-    font-family:'Consolas','Courier New',monospace; color:var(--accent2);
+    font-family:'Consolas','Courier New',monospace; color:#00843D;
     font-size:.85rem; margin-bottom:8px; font-weight:700; letter-spacing:.5px;
   }
   .estado-row{
@@ -172,7 +172,7 @@
   }
   .estado-opt{
     display:flex; align-items:center; gap:5px;
-    font-size:.75rem; color:var(--muted); cursor:pointer;
+    font-size:.75rem; color:#222222; cursor:pointer;
   }
   .estado-opt input{width:auto; accent-color:var(--accent);}
   .estado-opt-permitir{
@@ -189,10 +189,10 @@
   }
   .phase-row{display:grid; grid-template-columns:90px 1fr; gap:8px; align-items:center; margin-bottom:6px;}
   .phase-row span{
-    font-family:'Consolas','Courier New',monospace; color:var(--muted); font-size:.8rem;
+    font-family:'Consolas','Courier New',monospace; color:#333333; font-size:.8rem;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   }
-  .small-note{color:var(--muted); font-size:.75rem; margin:0 0 10px;}
+  .small-note{color:#555555; font-size:.75rem; margin:0 0 10px;}
   .header-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
   @media(max-width:480px){.header-grid{grid-template-columns:1fr;}}
 
@@ -258,12 +258,12 @@
   .status.err{color:#ff6b6b;}
 
   .overlay{
-    position:fixed; inset:0; background:rgba(0,50,20,.88);
+    position:fixed; inset:0; background:rgba(0,80,30,.92);
     display:flex; align-items:center; justify-content:center; z-index:100;
     flex-direction:column; gap:14px; text-align:center; padding:20px;
   }
   .overlay.hidden{display:none;}
-  .overlay h2{color:var(--ok); font-family:'Consolas',monospace;}
+  .overlay h2{color:#ffffff; font-family:'Consolas',monospace;}
   .overlay button{
     background:var(--accent2); border:none; color:#06222a; font-weight:700;
     padding:12px 24px; border-radius:5px; cursor:pointer; font-size:1rem;
@@ -290,7 +290,7 @@
     </div>
     <div class="header-badges">
       <span class="badge">Captura en sitio · Turno actual</span>
-      <span class="badge" style="border-color:#78BE20;color:#78BE20;">v16</span>
+      <span class="badge" style="border-color:#78BE20;color:#78BE20;">v17</span>
     </div>
   </div>
 </header>
@@ -337,16 +337,16 @@
 </main>
 
 <div class="submit-bar">
-  <div class="status" id="status">Llena los campos y envía. Se borrarán automáticamente al confirmar.</div>
+  <div class="status" id="status" style="color:#333;">Llena los campos y envía. Se borrarán automáticamente al confirmar.</div>
   <button id="sendBtn" type="button" onclick="enviar()">Enviar lectura</button>
 </div>
 
 
 
 <div class="overlay hidden" id="overlay">
-  <h2>✔ Lectura enviada</h2>
-  <p>Gracias. El formulario quedará vacío para el siguiente registro.</p>
-  <p id="overlayNota" style="color:#ffb000; font-size:.85rem;"></p>
+  <h2 style="color:#fff;">✔ Lectura enviada</h2>
+  <p style="color:#fff;">Gracias. El formulario quedará vacío para el siguiente registro.</p>
+  <p id="overlayNota" style="color:#fff; font-size:.85rem;"></p>
   <button onclick="cerrarOverlay()">Listo, nueva lectura</button>
 </div>
 
@@ -561,12 +561,24 @@ function buildSimple(sec){
   return html;
 }
 
+// Códigos con casilla de purga
+const PURGA_CODES = new Set(["93790","92130","92120","97020","92080","92090","99010","92100","A3E50","A8050","A3E60","A8600"]);
+
+function purgaHtml(code){
+  if(!PURGA_CODES.has(code)) return "";
+  return `<label class="estado-opt" style="margin-bottom:8px;padding:6px 10px;background:#e8f5ee;border:1px solid #c0d8c0;border-radius:4px;width:100%;box-sizing:border-box;">
+    <input type="checkbox" name="${code} - Purga de Interruptor" value="Se realizó purga de interruptor">
+    <span style="color:#005a2b;font-weight:600;">Se realizó purga de interruptor</span>
+  </label>`;
+}
+
 function buildCamisa(sec){
   let html = '';
   sec.items.forEach(code=>{
     html += `<div class="equip-block">
       <div class="equip-title">${code}</div>
       ${estadoHtml(code)}
+      ${purgaHtml(code)}
       <div class="phase-row"><span>Pres. Gas</span><div class="grid" style="grid-template-columns:repeat(3,1fr)">
         ${["P1","P2","P3"].map(p=>field(p,`${code} - Presion Gas - ${p}`,"number")).join("")}
       </div></div>
@@ -644,6 +656,7 @@ function buildPresionBanco13(sec){
     html += `<div class="equip-block">
       <div class="equip-title">${code}</div>
       ${estadoHtml(code)}
+      ${purgaHtml(code)}
       <div class="phase-row"><span>Pres. Gas</span><div class="grid" style="grid-template-columns:repeat(3,1fr)">
         ${["A","B","C"].map(p=>field(p,`${code} - Presion Gas - ${p}`,"number")).join("")}
       </div></div>
