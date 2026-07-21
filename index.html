@@ -178,7 +178,158 @@
   .estado-opt-permitir{
     margin-left:auto; color:var(--accent2);
   }
-  .estado-opt-permitir input{accent-color:var(--accent2);}
+  /* ---- NIVEL AGUA VISUAL GAUGE ---- */
+  .nivel-visual-wrap{
+    margin:10px 0 6px; border:1px solid var(--line); border-radius:6px; overflow:hidden;
+  }
+  .nivel-visual-title{
+    background:var(--panel2); padding:6px 12px;
+    font-size:.75rem; color:var(--muted); font-family:'Consolas',monospace;
+    border-bottom:1px solid var(--line);
+  }
+  .nivel-visual-panel{
+    display:flex; gap:0; align-items:stretch;
+  }
+  .bateria-diagram{
+    width:70px; min-width:70px; display:flex; flex-direction:column;
+    border-right:1px solid var(--line); font-size:.6rem; text-align:center;
+    font-family:'Consolas',monospace; font-weight:700; letter-spacing:.3px;
+  }
+  .bd-zona{ flex:1; display:flex; align-items:center; justify-content:center; padding:4px 2px;}
+  .bd-linea{ padding:2px 4px; font-size:.55rem; text-align:center; border-top:2px dashed; border-bottom:2px dashed; font-weight:700;}
+  .bd-alto{ background:#1a3a5c; color:#60a5fa;}
+  .bd-linea:first-of-type{ border-color:#60a5fa; color:#60a5fa; background:#0f2240;}
+  .bd-correcto{ background:#0a2a1a; color:#4ade80; flex:2;}
+  .bd-linea:last-of-type{ border-color:#f59e0b; color:#f59e0b; background:#1a1200;}
+  .bd-bajo{ background:#1a1000; color:#f59e0b;}
+  .bd-critico{ background:#1a0000; color:#ef4444;}
+  .nivel-btns{
+    flex:1; display:flex; flex-direction:column; gap:6px; padding:10px;
+  }
+  .nivel-btn{
+    display:flex; flex-direction:column; align-items:flex-start;
+    padding:10px 14px; border-radius:5px; cursor:pointer;
+    border:2px solid var(--line); gap:2px; transition:all .15s;
+  }
+  .nivel-btn input{display:none;}
+  .nivel-btn span{font-size:.85rem; font-weight:700;}
+  .nivel-btn small{font-size:.65rem; color:var(--muted);}
+  .nivel-btn:has(input:checked){border-width:2px;}
+  .nb-correcto{border-color:#00843D;}
+  .nb-correcto:has(input:checked){background:rgba(0,132,61,.15);}
+  .nb-correcto span{color:#4ade80;}
+  .nb-bajo{border-color:#f59e0b;}
+  .nb-bajo:has(input:checked){background:rgba(245,158,11,.15);}
+  .nb-bajo span{color:#f59e0b;}
+  .nb-critico{border-color:#ef4444;}
+  .nb-critico:has(input:checked){background:rgba(239,68,68,.15);}
+  .nb-critico span{color:#ef4444;}
+  .nivel-detalle{
+    margin:0 10px 10px; padding:10px; background:rgba(245,158,11,.07);
+    border:1px dashed #f59e0b; border-radius:5px;
+  }
+  /* ---- DETECCIÓN DE ANOMALÍAS ---- */
+  .anomalia-row{
+    margin-top:8px; padding:8px 10px; border-radius:5px;
+    border:1px solid var(--line); background:var(--panel2);
+    display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  }
+  .anomalia-label{
+    font-size:.72rem; color:var(--muted); font-family:'Consolas',monospace;
+    white-space:nowrap;
+  }
+  .anomalia-btn{
+    display:flex; align-items:center; gap:5px; cursor:pointer;
+    font-size:.78rem; font-weight:600; padding:5px 12px;
+    border-radius:4px; border:1px solid var(--line);
+  }
+  .anomalia-btn input{width:auto;}
+  .ab-ok{color:#00843D; border-color:#00843D;}
+  .ab-ok:has(input:checked){background:rgba(0,132,61,.12);}
+  .ab-alerta{color:#f59e0b; border-color:#f59e0b;}
+  .ab-alerta:has(input:checked){background:rgba(245,158,11,.12);}
+  .anomalia-detalle{
+    width:100%; margin-top:6px;
+  }
+  .modo-alarma-bloque{
+    margin-top:8px; display:flex; flex-direction:column; gap:8px;
+  }
+  .modo-fila{
+    display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+    padding:8px 10px; background:var(--panel2); border-radius:5px;
+    border:1px solid var(--line);
+  }
+  .modo-fila-label{
+    font-size:.72rem; color:var(--muted); font-family:'Consolas',monospace;
+    white-space:nowrap; min-width:110px;
+  }
+  .modo-btn-label{
+    display:flex; align-items:center; gap:5px; cursor:pointer;
+    font-size:.8rem; font-weight:600; padding:5px 12px;
+    border-radius:4px; border:1px solid var(--line); color:var(--text);
+  }
+  .modo-btn-label input{width:auto; accent-color:var(--accent);}
+  .alarma-detalle{
+    width:100%; margin-top:6px; display:none;
+  }
+  .alarma-si-label{ border-color:#f59e0b; color:#f59e0b;}
+  .alarma-si-label:has(input:checked){ background:rgba(245,158,11,.1);}
+
+  /* ---- MAPA DE CELDAS ---- */
+  .celda-mapa-wrap{
+    margin-top:8px; border:1px solid var(--line); border-radius:6px; overflow:hidden;
+  }
+  .celda-mapa-header{
+    background:var(--panel2); padding:8px 12px; border-bottom:1px solid var(--line);
+  }
+  .celda-mapa-title{font-size:.75rem; color:var(--muted); font-family:'Consolas',monospace; margin-bottom:4px;}
+  .celda-leyendas{display:flex; gap:10px; flex-wrap:wrap;}
+  .cl-bajo{font-size:.68rem; color:#f59e0b; font-weight:600;}
+  .cl-critico{font-size:.68rem; color:#ef4444; font-weight:600;}
+  .cl-reset{font-size:.68rem; color:var(--muted);}
+  .celda-grid-scroll{overflow-x:auto; padding:8px;}
+  .celda-grid{
+    display:inline-flex; flex-direction:column; gap:3px; min-width:max-content;
+  }
+  .cg-row, .cg-dir-row{display:flex; gap:3px; align-items:center;}
+  .cg-terminal{
+    width:22px; min-width:22px; height:28px; display:flex; align-items:center;
+    justify-content:center; font-size:.75rem; font-weight:900;
+    font-family:'Consolas',monospace; border-radius:3px;
+  }
+  .cg-pos{color:#4ade80; background:rgba(74,222,128,.12); border:1px solid #4ade80;}
+  .cg-neg{color:#ef4444; background:rgba(239,68,68,.12); border:1px solid #ef4444;}
+  .cg-dir{
+    width:28px; min-width:28px; height:20px; display:flex; align-items:center;
+    justify-content:center; font-size:.7rem; font-weight:700;
+    font-family:'Consolas',monospace;
+  }
+  .cg-baja{color:#60a5fa;}
+  .cg-sube{color:#c084fc;}
+  .cg-spacer{width:28px; min-width:28px;}
+  .cg-conn{
+    width:56px; min-width:56px; height:16px; display:flex; align-items:center;
+    justify-content:center; font-size:.7rem; color:var(--muted);
+    font-family:'Consolas',monospace; letter-spacing:-2px;
+  }
+  .celda{
+    width:28px; height:28px; min-width:28px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:.55rem; font-weight:700; font-family:'Consolas',monospace;
+    border-radius:3px; cursor:pointer; user-select:none;
+    background:#0c1a21; border:1px solid #2c4a5a; color:#9fb4bd;
+    transition:all .1s;
+  }
+  .celda:active{transform:scale(.88);}
+  .celda.c-bajo{background:#3a2000; border-color:#f59e0b; color:#f59e0b;}
+  .celda.c-critico{background:#3a0000; border-color:#ef4444; color:#ef4444;}
+  .celda-resumen{
+    padding:6px 12px; font-size:.72rem; font-family:'Consolas',monospace;
+    color:var(--muted); border-top:1px solid var(--line); background:var(--panel2);
+  }
+  .celda-resumen.tiene-alerta{color:#f59e0b;}
+  .celda-resumen.tiene-critico{color:#ef4444;}
+
   .equip-block.estado-activo{
     border-color:var(--accent); background:rgba(255,176,0,.06);
   }
@@ -290,7 +441,7 @@
     </div>
     <div class="header-badges">
       <span class="badge">Captura en sitio · Turno actual</span>
-      <span class="badge" style="border-color:#78BE20;color:#78BE20;">v18</span>
+      <span class="badge" style="border-color:#78BE20;color:#78BE20;">v20</span>
     </div>
   </div>
 </header>
@@ -365,13 +516,13 @@ const WEB3FORMS_KEY = "aac5c153-f05c-4f8c-87a1-b694b5d7114c";
    ============================================================ */
 const sections = [
   {
-    title: "🔌 Interruptores 400 KV HUI — Gas SF6 y Operaciones",
+    title: "🔌 Bahías 400 KV HUI — Anomalías en bahías, operaciones y presión Gas SF6",
     type: "abc-double",
     fieldsPerEquip: [["Gas SF6","gas"],["Operaciones","ops"]],
     items: ["A3D10","A3D20","A2110","A3I10","A3740","A3H80","A2070","A7020","A9010","A4020"]
   },
   {
-    title: "🔌 Interruptores HUO — Operaciones y Presión SF6",
+    title: "🔌 Bahías HUO — Anomalías en bahías, operaciones y presión Gas SF6",
     type: "abc-double",
     fieldsPerEquip: [["Operaciones","ops"],["Presión SF6","psf6"]],
     items: ["A9020","A9030","A1010","A8D10","A31D0","A4010","A1020","A3750","A8520"]
@@ -407,7 +558,7 @@ const sections = [
     items: [["Nivel Diesel","num","%"]]
   },
   {
-    title: "🚧 La Camisa",
+    title: "🚧 La Camisa — Anomalías en bahías, operaciones y presión Gas SF6",
     type: "camisa",
     items: ["A3E50","A8050","A3E60","A8600"]
   },
@@ -459,13 +610,13 @@ const sections = [
     items: ["Reactor LT A3740 HUI","Reactor LT A3270 HUO"]
   },
   {
-    title: "🔌 Interruptores 115 KV",
+    title: "🔌 Bahías 115 KV — Anomalías en bahías, operaciones y presión Gas SF6",
     type: "interr230",
     items: ["71010","72080","72090","72100","72120","72130","73430","73450","73460",
             "73920","73930","73980","73L90","73H90","77010","77020","79010"]
   },
   {
-    title: "🔌 Interruptores 230 KV",
+    title: "🔌 Bahías 230 KV — Anomalías en bahías, operaciones y presión Gas SF6",
     type: "presion-banco13",
     items: ["91030","91050","92070","92080","92090","92100","92110","92120","92130","93090","93790","97020","99010"]
   }
@@ -517,11 +668,28 @@ function estadoHtmlSimple(id){
   </div>`;
 }
 
+function anomaliaHtml(id){
+  const idSafe = id.replace(/[^a-zA-Z0-9]/g,'_');
+  const fieldHtml = field("Descripción de la anomalía detectada", id + " - Comentario Anomalia", "text");
+  return `<div class="anomalia-row">
+    <span class="anomalia-label">🔍 Detección de anomalías:</span>
+    <label class="anomalia-btn ab-ok">
+      <input type="radio" name="${id} - Anomalia" value="Sin anomalías"> Sin anomalías
+    </label>
+    <label class="anomalia-btn ab-alerta">
+      <input type="radio" name="${id} - Anomalia" value="Con anomalía" data-anomalia="si"> Con anomalía
+    </label>
+    <div class="anomalia-detalle" id="anom_${idSafe}" style="display:none;">
+      ${fieldHtml}
+    </div>
+  </div>`;
+}
+
 function buildABCDouble(sec){
   let html = '<div class="grid">';
   sec.items.forEach(code=>{
     html += `<div class="equip-block" style="grid-column:1/-1">
-      <div class="equip-title">${code}</div>
+      <div class="equip-title">Bahía ${code}</div>
       ${estadoHtml(code)}`;
     sec.fieldsPerEquip.forEach(([label,key])=>{
       const esOperaciones = key === "ops";
@@ -531,10 +699,163 @@ function buildABCDouble(sec){
       });
       html += `</div></div>`;
     });
+    html += anomaliaHtml(code);
     html += `</div>`;
   });
   html += '</div>';
   return html;
+}
+
+// Configuración de celdas por banco
+// Layout real de cada banco (cols × filas):
+// 250 VCD: 8 columnas × 15 filas = 120 celdas
+// 125 VCD: 4 columnas × 15 filas =  60 celdas
+// Numeración en serpenteo por columna:
+//   Col impar (0,2,4...): baja ↓  (celda 1 arriba → 15 abajo)
+//   Col par   (1,3,5...): sube ↑  (celda 30 arriba → 16 abajo)
+const BANCO_LAYOUTS = {
+  "BCO 1 250VCD — Caseta Ppal": { cols:6, rows:20 },
+  "BCO 2 250VCD — Caseta Ppal": { cols:6, rows:20 },
+  "BCO 3 125VCD — Caseta Ppal": { cols:4, rows:15 },
+  "BCO 4 250VCD — Caseta Aux":  { cols:6, rows:20 },
+  "BCO 1 125VCD — Caseta HUO":  { cols:4, rows:15 },
+  "BCO 2 125VCD — Caseta HUO":  { cols:4, rows:15 },
+  "BCO 1 125VCD — Caseta LCM":  { cols:4, rows:15 },
+  "BCO 2 125VCD — Caseta LCM":  { cols:4, rows:15 },
+};
+
+function getCeldaNum(c, r, rows){
+  // c=columna (0-indexed), r=fila (0=top), rows=total filas
+  return c % 2 === 0
+    ? c * rows + r + 1          // columna impar: baja (top=primero)
+    : c * rows + (rows - r);   // columna par: sube (top=último)
+}
+
+function buildCeldaGrid(name){
+  const id = name.replace(/[^a-zA-Z0-9]/g,'_');
+  const layout = BANCO_LAYOUTS[name];
+  if(!layout) return '';
+  const {cols, rows} = layout;
+
+  // Fila de dirección + terminales
+  let html = '<div class="cg-dir-row">';
+  html += '<div class="cg-terminal cg-pos">+</div>';
+  for(let c=0; c<cols; c++){
+    const baja = c % 2 === 0;
+    html += `<div class="cg-dir ${baja?'cg-baja':'cg-sube'}">${baja?'↓':'↑'}</div>`;
+  }
+  html += '<div class="cg-terminal cg-neg">−</div>';
+  html += '</div>';
+
+  // Filas de celdas
+  for(let r=0; r<rows; r++){
+    html += '<div class="cg-row">';
+    html += '<div class="cg-spacer"></div>';
+    for(let c=0; c<cols; c++){
+      const num = getCeldaNum(c, r, rows);
+      html += `<div class="celda" data-num="${num}" data-estado="ok">${num}</div>`;
+    }
+    html += '<div class="cg-spacer"></div>';
+    html += '</div>';
+  }
+
+  // Fila de conexiones inferiores (╰╮ entre columna impar→par)
+  html += '<div class="cg-dir-row">';
+  html += '<div class="cg-spacer"></div>';
+  for(let c=0; c<cols; c++){
+    const baja = c % 2 === 0;
+    // Las columnas que bajan conectan al fondo con la siguiente columna que sube
+    if(baja && c < cols-1){
+      html += '<div class="cg-conn">╰╮</div>';
+    } else if(!baja && c < cols-1){
+      // Columnas que suben conectan arriba con la siguiente (ya mostrado en dir-row)
+      html += '<div class="cg-spacer"></div>';
+    } else {
+      html += '<div class="cg-spacer"></div>';
+    }
+  }
+  html += '<div class="cg-spacer"></div>';
+  html += '</div>';
+
+  return `<div class="celda-mapa-wrap" id="mapa_${id}" style="display:none;">
+    <div class="celda-mapa-header">
+      <div class="celda-mapa-title">🔲 Mapa de celdas — toca para marcar nivel bajo</div>
+      <div class="celda-leyendas">
+        <span class="cl-bajo">⚠ 1 toque = Bajo</span>
+        <span class="cl-critico">🔴 2 toques = Crítico</span>
+        <span class="cl-reset">3 toques = Normal</span>
+      </div>
+    </div>
+    <div class="celda-grid-scroll">
+      <div class="celda-grid" data-banco-id="${id}">${html}</div>
+    </div>
+    <div class="celda-resumen" id="resumen_${id}">Sin celdas marcadas</div>
+    <input type="hidden" name="${name} - Celdas Bajo" id="cBajo_${id}" value="">
+    <input type="hidden" name="${name} - Celdas Critico" id="cCritico_${id}" value="">
+  </div>`;
+}
+
+function nivelAguaVisualHtml(name){
+  const id = name.replace(/[^a-zA-Z0-9]/g,'_');
+  const grupo = `${name} - Nivel Agua`;
+  return `<div class="nivel-visual-wrap">
+    <div class="nivel-visual-title">💧 Nivel de agua desmineralizada</div>
+    <div class="nivel-visual-panel">
+      <div class="bateria-diagram">
+        <div class="bd-zona bd-alto">ALTO</div>
+        <div class="bd-linea">─ MAX ─</div>
+        <div class="bd-zona bd-correcto">OK</div>
+        <div class="bd-linea">─ MIN ─</div>
+        <div class="bd-zona bd-bajo">BAJO</div>
+        <div class="bd-zona bd-critico">CRIT</div>
+      </div>
+      <div class="nivel-btns">
+        <label class="nivel-btn nb-correcto">
+          <input type="radio" name="${grupo}" value="Correcto" data-nivel="ok" data-banco-id="${id}">
+          <span>✓ Correcto</span>
+          <small>Nivel entre líneas MIN y MAX</small>
+        </label>
+        <label class="nivel-btn nb-bajo">
+          <input type="radio" name="${grupo}" value="Bajo" data-nivel="alerta" data-banco-id="${id}">
+          <span>⚠ Bajo</span>
+          <small>Por debajo de línea mínima</small>
+        </label>
+        <label class="nivel-btn nb-critico">
+          <input type="radio" name="${grupo}" value="Crítico" data-nivel="alerta" data-banco-id="${id}">
+          <span>🔴 Crítico</span>
+          <small>Muy bajo / sin nivel visible</small>
+        </label>
+      </div>
+    </div>
+    ${buildCeldaGrid(name)}
+  </div>`;
+}
+
+function modoAlarmaHtml(name){
+  const id = name.replace(/[^a-zA-Z0-9]/g,'_');
+  return `<div class="modo-alarma-bloque">
+    <div class="modo-fila">
+      <span class="modo-fila-label">Modo de operación:</span>
+      <label class="modo-btn-label">
+        <input type="radio" name="${name} - Modo Operacion" value="Flotación"> Flotación
+      </label>
+      <label class="modo-btn-label">
+        <input type="radio" name="${name} - Modo Operacion" value="Igualación"> Igualación
+      </label>
+    </div>
+    <div class="modo-fila" style="flex-wrap:wrap;">
+      <span class="modo-fila-label">Alarma activa:</span>
+      <label class="modo-btn-label">
+        <input type="radio" name="${name} - Alarma" value="No" data-alarma="no"> Sin alarma
+      </label>
+      <label class="modo-btn-label alarma-si-label">
+        <input type="radio" name="${name} - Alarma" value="Sí" data-alarma="si"> ⚠ Con alarma
+      </label>
+      <div class="alarma-detalle" id="alarma_${id}">
+        ${field("Descripción de la alarma", `${name} - Descripcion Alarma`, "text")}
+      </div>
+    </div>
+  </div>`;
 }
 
 function buildBattery(sec){
@@ -546,11 +867,15 @@ function buildBattery(sec){
       <div class="grid" style="grid-template-columns:repeat(2,1fr)">
         ${field("Volts", `${name} - Volts`,"number")}
         ${field("Amp", `${name} - Amp`,"number")}
-      </div></div>`;
+      </div>
+      ${nivelAguaVisualHtml(name)}
+      ${modoAlarmaHtml(name)}
+    </div>`;
   });
   html += '</div>';
   return html;
 }
+
 
 function buildSimple(sec){
   let html = '<div class="grid">';
@@ -575,8 +900,9 @@ function purgaHtml(code){
 function buildCamisa(sec){
   let html = '';
   sec.items.forEach(code=>{
+    const anomHtml = anomaliaHtml(code);
     html += `<div class="equip-block">
-      <div class="equip-title">${code}</div>
+      <div class="equip-title">Bahía ${code}</div>
       ${estadoHtml(code)}
       ${purgaHtml(code)}
       <div class="phase-row"><span>Pres. Gas</span><div class="grid" style="grid-template-columns:repeat(3,1fr)">
@@ -588,6 +914,7 @@ function buildCamisa(sec){
       <div class="grid" style="grid-template-columns:1fr">
         ${field("Presión de Aire", `${code} - Presion de Aire`,"number")}
       </div>
+      ${anomHtml}
     </div>`;
   });
   return html;
@@ -596,6 +923,7 @@ function buildCamisa(sec){
 function buildBanco(sec){
   let html = '';
   sec.phases.forEach(ph=>{
+    const anomHtml = anomaliaHtml(sec.banco + " " + ph);
     html += `<div class="equip-block">
       <div class="equip-title">${sec.banco} — ${ph}</div>
       ${estadoHtml(`${sec.banco} ${ph}`)}
@@ -607,7 +935,9 @@ function buildBanco(sec){
         ${field("Pos. Tap", `${sec.banco} ${ph} - Pos Tap`,"number")}
         ${field("Nivel Cambiador", `${sec.banco} ${ph} - Nivel Cambiador`,"number")}
         ${field("No. Op. Cambio Taps", `${sec.banco} ${ph} - No Op Cambio Taps`,"number","",'data-operaciones="1"')}
-      </div></div>`;
+      </div>
+      ${anomHtml}
+    </div>`;
   });
   return html;
 }
@@ -638,13 +968,15 @@ function buildInterr230(sec){
         </div></div>`;
       return;
     }
+    const anomHtml115 = anomaliaHtml("Interr " + code);
     html += `<div class="equip-block">
-      <div class="equip-title">Interruptor ${code}</div>
-      ${estadoHtml(`Interr ${code}`)}
+      <div class="equip-title">Bahía ${code}</div>
+      ${estadoHtml("Interr " + code)}
       <div class="grid" style="grid-template-columns:repeat(2,1fr)">
-        ${field("Presión SF6", `Interr ${code} - Presion SF6`,"number")}
-        ${field("No. Operaciones", `Interr ${code} - No Operaciones`,"number","",'data-operaciones="1"')}
+        ${field("Presión SF6", "Interr " + code + " - Presion SF6","number")}
+        ${field("No. Operaciones", "Interr " + code + " - No Operaciones","number","",'data-operaciones="1"')}
       </div>
+      ${anomHtml115}
     </div>`;
   });
   return html;
@@ -653,8 +985,9 @@ function buildInterr230(sec){
 function buildPresionBanco13(sec){
   let html = '';
   sec.items.forEach(code=>{
+    const anomHtml = anomaliaHtml(code);
     html += `<div class="equip-block">
-      <div class="equip-title">${code}</div>
+      <div class="equip-title">Bahía ${code}</div>
       ${estadoHtml(code)}
       ${purgaHtml(code)}
       <div class="phase-row"><span>Pres. Gas</span><div class="grid" style="grid-template-columns:repeat(3,1fr)">
@@ -663,6 +996,7 @@ function buildPresionBanco13(sec){
       <div class="phase-row"><span>No. Oper.</span><div class="grid" style="grid-template-columns:repeat(3,1fr)">
         ${["A","B","C"].map(p=>field(p,`${code} - No Operaciones - ${p}`,"number","",'data-operaciones="1"')).join("")}
       </div></div>
+      ${anomHtml}
     </div>`;
   });
   return html;
@@ -789,6 +1123,102 @@ document.addEventListener("input", e=>{
 });
 
 /* ============================================================
+   NIVEL DE AGUA — mostrar/ocultar mapa de celdas
+   ============================================================ */
+document.addEventListener("change", e=>{
+  const r = e.target;
+
+  // Nivel de agua visual → mostrar/ocultar mapa
+  if(r.matches('input[type="radio"][data-nivel]')){
+    const bancoId = r.dataset.bancoId;
+    const mapa = document.getElementById("mapa_" + bancoId);
+    if(mapa){
+      mapa.style.display = r.dataset.nivel === "alerta" ? "block" : "none";
+      if(r.dataset.nivel !== "alerta"){
+        // Limpiar celdas al volver a "Correcto"
+        mapa.querySelectorAll(".celda").forEach(c=>{
+          c.dataset.estado = "ok";
+          c.className = "celda";
+        });
+        actualizarResumen(bancoId);
+      }
+    }
+  }
+
+  // Anomalía en interruptores
+  if(r.matches('input[type="radio"][data-anomalia]')){
+    const id = r.name.replace(" - Anomalia","");
+    const idSafe = id.replace(/[^a-zA-Z0-9]/g,"_");
+    const div = document.getElementById("anom_"+idSafe);
+    if(div){
+      div.style.display = "block";
+      div.querySelector("input")?.focus();
+    }
+  }
+  // Quitar anomalía al seleccionar "Sin anomalías"
+  if(r.type==="radio" && r.value==="Sin anomalías"){
+    const id = r.name.replace(" - Anomalia","");
+    const idSafe = id.replace(/[^a-zA-Z0-9]/g,"_");
+    const div = document.getElementById("anom_"+idSafe);
+    if(div){ div.style.display="none"; div.querySelectorAll("input").forEach(i=>i.value=""); }
+  }
+
+  // Alarma
+  if(r.matches('input[type="radio"][data-alarma]')){
+    const name = r.name.replace(" - Alarma","");
+    const alarmaId = "alarma_" + name.replace(/[^a-zA-Z0-9]/g,"_");
+    const alarmaDiv = document.getElementById(alarmaId);
+    if(alarmaDiv){
+      alarmaDiv.style.display = r.dataset.alarma === "si" ? "block" : "none";
+      if(r.dataset.alarma !== "si") alarmaDiv.querySelectorAll("input").forEach(i=>i.value="");
+    }
+  }
+});
+
+/* ---- TAP en celdas ---- */
+document.addEventListener("click", e=>{
+  const celda = e.target.closest(".celda");
+  if(!celda) return;
+  const bancoId = celda.closest(".celda-grid").dataset.bancoId;
+  const estado = celda.dataset.estado || "ok";
+  if(estado === "ok"){
+    celda.dataset.estado = "bajo";
+    celda.className = "celda c-bajo";
+  } else if(estado === "bajo"){
+    celda.dataset.estado = "critico";
+    celda.className = "celda c-critico";
+  } else {
+    celda.dataset.estado = "ok";
+    celda.className = "celda";
+  }
+  actualizarResumen(bancoId);
+});
+
+function actualizarResumen(bancoId){
+  const grid = document.querySelector(`.celda-grid[data-banco-id="${bancoId}"]`);
+  if(!grid) return;
+  const bajo = [...grid.querySelectorAll(".celda.c-bajo")].map(c=>c.dataset.num);
+  const critico = [...grid.querySelectorAll(".celda.c-critico")].map(c=>c.dataset.num);
+  const resumen = document.getElementById("resumen_" + bancoId);
+  const inBajo = document.getElementById("cBajo_" + bancoId);
+  const inCritico = document.getElementById("cCritico_" + bancoId);
+  if(inBajo) inBajo.value = bajo.join(",");
+  if(inCritico) inCritico.value = critico.join(",");
+  if(resumen){
+    if(critico.length > 0){
+      resumen.className = "celda-resumen tiene-critico";
+      resumen.textContent = `🔴 Crítico: celdas ${critico.join(", ")}${bajo.length>0?" | ⚠ Bajo: celdas "+bajo.join(", "):""}`;
+    } else if(bajo.length > 0){
+      resumen.className = "celda-resumen tiene-alerta";
+      resumen.textContent = `⚠ Bajo: celdas ${bajo.join(", ")}`;
+    } else {
+      resumen.className = "celda-resumen";
+      resumen.textContent = "Sin celdas marcadas";
+    }
+  }
+}
+
+/* ============================================================
    ENVÍO
    ============================================================ */
 async function enviar(){
@@ -853,9 +1283,17 @@ async function enviar(){
   statusEl.className = "status";
 
   actualizarFechaHora();
+
+  // Detectar alerta de nivel bajo en baterías
+  const nivelesAlertas = form.querySelectorAll('input[type="radio"][data-nivel="alerta"]:checked');
+  const hayAlertaBaterias = nivelesAlertas.length > 0;
+
   const formData = new FormData(form);
   formData.append("access_key", WEB3FORMS_KEY);
-  formData.append("subject", `Lectura de campo HUI/HUO/LCM - ${formData.get("Fecha")} - Turno ${formData.get("Turno")}`);
+  const sujetoBase = `Lectura de campo HUI/HUO/LCM - ${formData.get("Fecha")} - Turno ${formData.get("Turno")}`;
+  formData.append("subject", hayAlertaBaterias
+    ? `⚠ ALERTA BATERÍAS - ${sujetoBase}`
+    : sujetoBase);
 
   try{
     const res = await fetch(ENDPOINT, {
@@ -890,6 +1328,17 @@ function cerrarOverlay(){
   Object.keys(estadoSeleccionado).forEach(k=>delete estadoSeleccionado[k]);
   form.reset();
   actualizarFechaHora();
+  document.querySelectorAll(".anomalia-detalle").forEach(d=>{
+    d.style.display="none";
+    d.querySelectorAll("input").forEach(i=>i.value="");
+  });
+  document.querySelectorAll(".celda-mapa-wrap").forEach(d=>{
+    d.style.display="none";
+    d.querySelectorAll(".celda").forEach(c=>{c.dataset.estado="ok"; c.className="celda";});
+    d.querySelectorAll(".celda-resumen").forEach(r=>{r.className="celda-resumen"; r.textContent="Sin celdas marcadas";});
+    d.querySelectorAll("input[type='hidden']").forEach(i=>i.value="");
+  });
+  document.querySelectorAll(".alarma-detalle").forEach(d=>d.style.display="none");
   document.getElementById("overlay").classList.add("hidden");
   document.getElementById("status").textContent = "Llena los campos y envía. Se borrarán automáticamente al confirmar.";
   document.getElementById("status").className = "status";
@@ -1134,6 +1583,144 @@ async function generarPDF(datos){
     head:[["Interr","Fase","Presión Gas","No. Operaciones"]],
     body:i230Body
   }, y, {0:{cellWidth:22},1:{cellWidth:12}});
+
+  // ============ PÁGINA MAPA BATERÍAS ============
+  doc.addPage();
+  doc.setFillColor(...VERDE);
+  doc.rect(0,0,PW,8,"F");
+  doc.setTextColor(255,255,255); doc.setFontSize(9); doc.setFont("helvetica","bold");
+  doc.text("NIVEL DE AGUA — BANCOS DE BATERÍAS", PW/2, 5.5, {align:"center"});
+
+  const BANCOS_MAP = [
+    {nombre:"BCO 1 250VCD — Caseta Ppal", cols:6, rows:20, sub:"HUI"},
+    {nombre:"BCO 2 250VCD — Caseta Ppal", cols:6, rows:20, sub:"HUI"},
+    {nombre:"BCO 3 125VCD — Caseta Ppal", cols:4, rows:15, sub:"HUI"},
+    {nombre:"BCO 4 250VCD — Caseta Aux",  cols:6, rows:20, sub:"HUI"},
+    {nombre:"BCO 1 125VCD — Caseta HUO",  cols:4, rows:15, sub:"HUO"},
+    {nombre:"BCO 2 125VCD — Caseta HUO",  cols:4, rows:15, sub:"HUO"},
+    {nombre:"BCO 1 125VCD — Caseta LCM",  cols:4, rows:15, sub:"LCM"},
+    {nombre:"BCO 2 125VCD — Caseta LCM",  cols:4, rows:15, sub:"LCM"},
+  ];
+
+  const C=3.2, G=0.4, S=C+G; // cell size, gap, step
+
+  function bancoW(cols){ return 5 + cols*S + 2; }
+  function bancoH(rows, extraLines){ return rows*S + 12 + extraLines*3.5; }
+
+  function dibujarBanco(nombre, cols, rows, bx, by){
+    const nivel    = datos[nombre+" - Nivel Agua"]||"";
+    const bajoCells   = new Set((datos[nombre+" - Celdas Bajo"]||"").split(",").filter(s=>s.trim()).map(s=>s.trim()));
+    const criticoCells= new Set((datos[nombre+" - Celdas Critico"]||"").split(",").filter(s=>s.trim()).map(s=>s.trim()));
+    const modo     = datos[nombre+" - Modo Operacion"]||"";
+    const alarma   = datos[nombre+" - Alarma"]||"";
+    const descAl   = datos[nombre+" - Descripcion Alarma"]||"";
+
+    // Título
+    const partes = nombre.split("—");
+    doc.setFontSize(5); doc.setFont("helvetica","bold"); doc.setTextColor(...OSCURO);
+    doc.text(partes[0].trim(), bx, by+3);
+    if(partes[1]) doc.text(partes[1].trim(), bx, by+6.5);
+    const gy = by+9; // grid Y start
+
+    // Terminales + y −
+    doc.setFontSize(4.5); doc.setFont("helvetica","bold");
+    doc.setFillColor(0,132,61); doc.rect(bx, gy, 3, 3,"F");
+    doc.setTextColor(255,255,255); doc.text("+", bx+0.7, gy+2.3);
+    const lastUp = (cols-1)%2!==0;
+    const negX = bx+5+(cols-1)*S + (lastUp ? 0 : C-3);
+    doc.setFillColor(180,0,0); doc.rect(negX, gy, 3, 3,"F");
+    doc.text("−", negX+0.8, gy+2.3);
+
+    // Celdas
+    for(let c=0;c<cols;c++){
+      for(let r=0;r<rows;r++){
+        const num = c%2===0 ? String(c*rows+r+1) : String(c*rows+(rows-r));
+        const cx=bx+5+c*S, cy=gy+r*S;
+        if(criticoCells.has(num)){
+          doc.setFillColor(150,0,0); doc.setDrawColor(220,60,60);
+        } else if(bajoCells.has(num)){
+          doc.setFillColor(110,60,0); doc.setDrawColor(210,140,0);
+        } else {
+          doc.setFillColor(14,28,38); doc.setDrawColor(38,65,80);
+        }
+        doc.rect(cx, cy, C, C,"FD");
+      }
+    }
+
+    // Conexiones inferiores (serpenteo ↓↑)
+    doc.setDrawColor(55,95,110); doc.setLineWidth(0.25);
+    for(let c=0;c<cols-1;c+=2){
+      const x1=bx+5+c*S+C/2, x2=bx+5+(c+1)*S+C/2, yb=gy+rows*S+0.5;
+      doc.line(x1,yb,x1,yb+1.5); doc.line(x1,yb+1.5,x2,yb+1.5); doc.line(x2,yb+1.5,x2,yb);
+    }
+    // Conexiones superiores (serpenteo ↑↓)
+    for(let c=1;c<cols-1;c+=2){
+      const x1=bx+5+c*S+C/2, x2=bx+5+(c+1)*S+C/2, yt=gy-0.5;
+      doc.line(x1,yt,x1,yt-1.5); doc.line(x1,yt-1.5,x2,yt-1.5); doc.line(x2,yt-1.5,x2,yt);
+    }
+
+    // Status bar
+    let ly = gy+rows*S+4;
+    const bw = bancoW(cols);
+    if(nivel==="Crítico"){
+      doc.setFillColor(140,0,0); doc.rect(bx,ly,bw,3.5,"F");
+      doc.setTextColor(255,150,150); doc.setFontSize(4); doc.setFont("helvetica","bold");
+      doc.text("CRÍTICO",bx+1,ly+2.5);
+    } else if(nivel==="Bajo"){
+      doc.setFillColor(90,50,0); doc.rect(bx,ly,bw,3.5,"F");
+      doc.setTextColor(255,200,0); doc.setFontSize(4); doc.setFont("helvetica","bold");
+      doc.text("BAJO",bx+1,ly+2.5);
+    } else if(nivel==="Correcto"){
+      doc.setFillColor(0,60,30); doc.rect(bx,ly,bw,3.5,"F");
+      doc.setTextColor(80,210,110); doc.setFontSize(4); doc.setFont("helvetica","bold");
+      doc.text("CORRECTO",bx+1,ly+2.5);
+    }
+    ly+=4.5;
+
+    doc.setFont("helvetica","normal"); doc.setFontSize(3.8);
+    if(bajoCells.size>0){
+      doc.setTextColor(200,130,0);
+      const t="⚠"+[...bajoCells].join(",");
+      doc.splitTextToSize(t,bw).forEach(l=>{doc.text(l,bx,ly);ly+=3;});
+    }
+    if(criticoCells.size>0){
+      doc.setTextColor(210,50,50);
+      const t="🔴"+[...criticoCells].join(",");
+      doc.splitTextToSize(t,bw).forEach(l=>{doc.text(l,bx,ly);ly+=3;});
+    }
+    if(modo){
+      doc.setTextColor(...OSCURO); doc.setFontSize(3.8);
+      doc.text("Modo: "+modo,bx,ly); ly+=3;
+    }
+    if(alarma==="Sí"){
+      doc.setTextColor(180,100,0);
+      doc.text("⚠ Alarma: "+descAl,bx,ly); ly+=3;
+    }
+    return ly-by; // total height used
+  }
+
+  // Layout: subestaciones en bloques
+  const SUBS = ["HUI","HUO","LCM"];
+  let pageY = 12;
+  SUBS.forEach(sub=>{
+    const bancos = BANCOS_MAP.filter(b=>b.sub===sub);
+    // Subtitle
+    doc.setFillColor(200,230,210);
+    doc.rect(ML, pageY, W, 5,"F");
+    doc.setTextColor(0,70,35); doc.setFontSize(6); doc.setFont("helvetica","bold");
+    doc.text("S.E. "+sub, ML+2, pageY+3.5);
+    pageY+=7;
+
+    let bx=ML, maxH=0;
+    bancos.forEach(b=>{
+      const bw = bancoW(b.cols);
+      if(bx+bw > ML+W){ pageY+=maxH+5; bx=ML; maxH=0; }
+      const bh = dibujarBanco(b.nombre, b.cols, b.rows, bx, pageY);
+      maxH = Math.max(maxH, bh);
+      bx += bw+6;
+    });
+    pageY += maxH+8;
+  });
 
   // Pie de páginas
   const totalPags = doc.internal.getNumberOfPages();
