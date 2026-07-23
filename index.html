@@ -628,7 +628,9 @@ const sections = [
 function field(label, name, type="text", sufijo="", extraAttr=""){
   // Usamos siempre type="text" para permitir letras (ej. "Fuera de Servicio"
   // a mano, notas cortas, etc.), pero mantenemos teclado numérico sugerido.
-  const inputmode = type === "number" ? "decimal" : "text";
+  // inputmode="decimal" en algunos celulares bloquea el teclado cuando el campo
+  // tiene texto (ej. "Mantenimiento"). Usamos "text" siempre para compatibilidad.
+  const inputmode = "text";
   if(sufijo){
     return `<div class="field"><label>${label}</label>
       <div class="field-suffix-wrap">
