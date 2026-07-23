@@ -1743,6 +1743,11 @@ async function generarPDF(datos){
   // Convertir a base64 y enviar por correo (lo guarda el script de Apps Script en Drive)
   const pdfBase64 = doc.output("datauristring").split(",")[1];
 
+  // Mostrar estado al usuario
+  const statusEl2 = document.getElementById("status");
+  statusEl2.textContent = "Enviando PDF a Drive...";
+  statusEl2.className = "status";
+
   const fdPdf = new FormData();
   fdPdf.append("access_key", WEB3FORMS_KEY);
   fdPdf.append("subject", "PDF_LECTURA_HUI");
@@ -1754,11 +1759,26 @@ async function generarPDF(datos){
   fdPdf.append("Operador", datos["Operador"]||"");
   fdPdf.append("Ayudante", datos["Ayudante"]||"");
 
-  await fetch("https://api.web3forms.com/submit", {
-    method: "POST",
-    headers: {"Accept":"application/json"},
-    body: fdPdf
-  }).catch(()=>{});
+  try {
+    const resPdf = await fetch("https://api.web3forms.com/submit", {
+      method: "POST",
+      headers: {"Accept":"application/json"},
+      body: fdPdf
+    });
+    const dataPdf = await resPdf.json();
+    if(!resPdf.ok || !dataPdf.success){
+      console.error("PDF email falló:", dataPdf);
+      statusEl2.textContent = "⚠ Lectura enviada correctamente, pero el PDF no pudo enviarse a Drive. Notifica al administrador.";
+      statusEl2.className = "status err";
+    } else {
+      statusEl2.textContent = "✔ Lectura y PDF enviados correctamente.";
+      statusEl2.className = "status ok";
+    }
+  } catch(errPdf){
+    console.error("Error enviando PDF:", errPdf);
+    statusEl2.textContent = "⚠ Lectura enviada. PDF no pudo enviarse (error de red).";
+    statusEl2.className = "status err";
+  }
 }
 </script>
 
