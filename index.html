@@ -441,7 +441,7 @@
     </div>
     <div class="header-badges">
       <span class="badge">Captura en sitio · Turno actual</span>
-      <span class="badge" style="border-color:#78BE20;color:#78BE20;">v20</span>
+      <span class="badge" style="border-color:#78BE20;color:#78BE20;">v21</span>
     </div>
   </div>
 </header>
@@ -612,7 +612,7 @@ const sections = [
   {
     title: "🔌 Bahías 115 KV — Anomalías en bahías, operaciones y presión Gas SF6",
     type: "interr230",
-    items: ["71010","72080","72090","72100","72120","72130","73430","73450","73460",
+    items: ["71010","72080","72090","72100","72120","72130","73430","73450","71060","73460",
             "73920","73930","73980","73L90","73H90","77010","77020","79010"]
   },
   {
@@ -1250,6 +1250,10 @@ async function enviar(){
   const camposTexto = form.querySelectorAll('input[type="text"]:not([data-estado])');
   let primerError = null;
   camposTexto.forEach(inp=>{
+    // Saltar campos dentro de contenedores ocultos (anomalía sin comentario, alarma sin desc, etc.)
+    if(!inp.offsetParent) return;
+    // Saltar campos de celdas de batería (hidden inputs)
+    if(inp.type === "hidden") return;
     const valor = inp.value.trim();
     if(valor.length < 2){
       inp.classList.add("campo-error");
@@ -1270,15 +1274,7 @@ async function enviar(){
     return;
   }
 
-  const observ = form.querySelector('textarea[name="Observaciones"]');
-  if(observ && observ.value.trim().length < 2){
-    observ.classList.add("campo-error");
-    statusEl.textContent = "⚠ Falta llenar Observaciones (mínimo 2 caracteres)";
-    statusEl.className = "status err";
-    observ.scrollIntoView({behavior:"smooth", block:"center"});
-    observ.focus();
-    return;
-  }
+  // Observaciones es opcional — no bloquear si está vacío
 
   btn.disabled = true;
   statusEl.textContent = "Enviando...";
@@ -1562,7 +1558,7 @@ async function generarPDF(datos){
   }, y, {0:{cellWidth:55}});
 
   // Interruptores 115 KV
-  const i115 = ["71010","72080","72090","72100","72120","72130","73430","73450",
+  const i115 = ["71010","72080","72090","72100","72120","72130","73430","73450","71060",
                  "73460","73920","73930","73980","73L90","73H90","77010","77020","79010"];
   const i115Body = i115.map(c=>[c, datos[`Interr ${c} - Presion SF6`]||"", datos[`Interr ${c} - No Operaciones`]||""]);
   y = seccionTabla("INTERRUPTORES 115 KV",{
