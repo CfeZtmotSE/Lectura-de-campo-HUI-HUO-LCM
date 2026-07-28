@@ -353,6 +353,12 @@
     box-shadow:0 0 0 2px rgba(255,92,92,.25);
     animation: parpadeoError 1s ease-in-out 2;
   }
+  .grupo-error{
+    border:2px solid #ff5c5c !important;
+    background:rgba(255,92,92,.12) !important;
+    border-radius:6px;
+    animation: parpadeoError 1s ease-in-out 2;
+  }
   @keyframes parpadeoError{
     0%, 100% { box-shadow:0 0 0 2px rgba(255,92,92,.25); }
     50% { box-shadow:0 0 0 4px rgba(255,92,92,.55); }
@@ -441,10 +447,16 @@
     </div>
     <div class="header-badges">
       <span class="badge">Captura en sitio · Turno actual</span>
-      <span class="badge" style="border-color:#78BE20;color:#78BE20;">v21</span>
+      <span class="badge" style="border-color:#78BE20;color:#78BE20;">v23</span>
+      <span class="badge" id="btnModoPrueba" style="cursor:pointer;border-color:#888;color:#888;" onclick="abrirLoginPrueba()">🧪 Modo de prueba</span>
     </div>
   </div>
 </header>
+
+<div id="bannerPrueba" style="display:none;background:#f59e0b;color:#1a1200;text-align:center;font-weight:700;padding:8px;font-size:.9rem;">
+  🧪 MODO DE PRUEBA ACTIVO — Solo se validan Turno y Operador. El correo se envía marcado como PRUEBA.
+  <span style="text-decoration:underline;cursor:pointer;margin-left:10px;" onclick="salirModoPrueba()">Salir del modo de prueba</span>
+</div>
 
 <main>
   <form id="lecturaForm">
@@ -494,6 +506,23 @@
 
 
 
+<div class="overlay hidden" id="overlayLogin">
+  <h2 style="color:#fff;">🧪 Modo de prueba</h2>
+  <p style="color:#fff; font-size:.85rem; max-width:340px;">
+    Este modo sirve para verificar que los correos, el Excel y el PDF se estén generando
+    correctamente, sin tener que llenar todo el formulario. Requiere usuario y contraseña.
+  </p>
+  <input type="text" id="loginUsuario" placeholder="Usuario" autocomplete="off"
+    style="padding:10px; border-radius:5px; border:1px solid #555; width:220px; font-size:1rem;">
+  <input type="password" id="loginPassword" placeholder="Contraseña" autocomplete="off"
+    style="padding:10px; border-radius:5px; border:1px solid #555; width:220px; font-size:1rem;">
+  <p id="loginError" style="color:#ff6b6b; font-size:.85rem; display:none;">Usuario o contraseña incorrectos.</p>
+  <div style="display:flex; gap:10px;">
+    <button onclick="verificarLoginPrueba()">Entrar</button>
+    <button onclick="cerrarLoginPrueba()" style="background:#555; color:#fff;">Cancelar</button>
+  </div>
+</div>
+
 <div class="overlay hidden" id="overlay">
   <h2 style="color:#fff;">✔ Lectura enviada</h2>
   <p style="color:#fff;">Gracias. El formulario quedará vacío para el siguiente registro.</p>
@@ -510,6 +539,50 @@
    ============================================================ */
 const ENDPOINT = "https://api.web3forms.com/submit";
 const WEB3FORMS_KEY = "aac5c153-f05c-4f8c-87a1-b694b5d7114c";
+
+/* ============================================================
+   MODO DE PRUEBA
+   Permite enviar un reporte llenando solo Turno y Operador, para
+   verificar que el correo, el Excel y el PDF se generen bien sin
+   tener que llenar el formulario completo. Protegido con usuario
+   y contraseña (verificación básica del lado del navegador, no es
+   seguridad real — solo evita que un operador lo active sin querer).
+   ============================================================ */
+const PRUEBA_USUARIO = "AlexNavarro1";
+const PRUEBA_PASSWORD = "Navarro27";
+let modoPrueba = false;
+
+function abrirLoginPrueba(){
+  document.getElementById("loginUsuario").value = "";
+  document.getElementById("loginPassword").value = "";
+  document.getElementById("loginError").style.display = "none";
+  document.getElementById("overlayLogin").classList.remove("hidden");
+  document.getElementById("loginUsuario").focus();
+}
+
+function cerrarLoginPrueba(){
+  document.getElementById("overlayLogin").classList.add("hidden");
+}
+
+function verificarLoginPrueba(){
+  const u = document.getElementById("loginUsuario").value.trim();
+  const p = document.getElementById("loginPassword").value;
+  if(u === PRUEBA_USUARIO && p === PRUEBA_PASSWORD){
+    modoPrueba = true;
+    document.getElementById("overlayLogin").classList.add("hidden");
+    document.getElementById("bannerPrueba").style.display = "block";
+    document.getElementById("btnModoPrueba").style.display = "none";
+  } else {
+    document.getElementById("loginError").style.display = "block";
+  }
+}
+
+function salirModoPrueba(){
+  modoPrueba = false;
+  document.getElementById("bannerPrueba").style.display = "none";
+  document.getElementById("btnModoPrueba").style.display = "inline-block";
+}
+
 
 /* ============================================================
    DEFINICIÓN DE EQUIPOS — agrega/edita aquí si falta algo
@@ -836,7 +909,7 @@ function nivelAguaVisualHtml(name){
 function modoAlarmaHtml(name){
   const id = name.replace(/[^a-zA-Z0-9]/g,'_');
   return `<div class="modo-alarma-bloque">
-    <div class="modo-fila">
+    <div class="modo-fila modo-operacion-fila">
       <span class="modo-fila-label">Modo de operación:</span>
       <label class="modo-btn-label">
         <input type="radio" name="${name} - Modo Operacion" value="Flotación"> Flotación
@@ -845,7 +918,7 @@ function modoAlarmaHtml(name){
         <input type="radio" name="${name} - Modo Operacion" value="Igualación"> Igualación
       </label>
     </div>
-    <div class="modo-fila" style="flex-wrap:wrap;">
+    <div class="modo-fila modo-alarma-fila" style="flex-wrap:wrap;">
       <span class="modo-fila-label">Alarma activa:</span>
       <label class="modo-btn-label">
         <input type="radio" name="${name} - Alarma" value="No" data-alarma="no"> Sin alarma
@@ -893,10 +966,15 @@ const PURGA_CODES = new Set(["93790","92130","92120","97020","92080","92090","99
 
 function purgaHtml(code){
   if(!PURGA_CODES.has(code)) return "";
-  return `<label class="estado-opt" style="margin-bottom:8px;padding:6px 10px;background:#e8f5ee;border:1px solid #c0d8c0;border-radius:4px;width:100%;box-sizing:border-box;">
-    <input type="checkbox" name="${code} - Purga de Interruptor" value="Se realizó purga de interruptor">
-    <span style="color:#005a2b;font-weight:600;">Se realizó purga de interruptor</span>
-  </label>`;
+  return `<div class="modo-fila purga-fila" style="flex-wrap:wrap;">
+    <span class="modo-fila-label">🌬 Purga de interruptor:</span>
+    <label class="modo-btn-label">
+      <input type="radio" name="${code} - Purga de Interruptor" value="Sí"> Sí se realizó
+    </label>
+    <label class="modo-btn-label">
+      <input type="radio" name="${code} - Purga de Interruptor" value="No"> No se realizó
+    </label>
+  </div>`;
 }
 
 function buildCamisa(sec){
@@ -1124,6 +1202,22 @@ document.addEventListener("input", e=>{
   }
 });
 
+// Quitar el resaltado de un grupo (Anomalía/Alarma/Nivel/Modo) en cuanto
+// se selecciona alguna de sus opciones.
+document.addEventListener("change", e=>{
+  const r = e.target;
+  if(r.type !== "radio") return;
+  const grupo = r.closest(".anomalia-row, .modo-alarma-fila, .modo-operacion-fila, .nivel-visual-panel, .purga-fila");
+  if(grupo && grupo.classList.contains("grupo-error")){
+    grupo.classList.remove("grupo-error");
+    const seccion = grupo.closest(".section");
+    if(seccion && !seccion.querySelector(".grupo-error") && !seccion.querySelector(".campo-error")){
+      const head = seccion.querySelector(".section-head");
+      if(head) head.classList.remove("tiene-error");
+    }
+  }
+});
+
 /* ============================================================
    NIVEL DE AGUA — mostrar/ocultar mapa de celdas
    ============================================================ */
@@ -1232,6 +1326,13 @@ async function enviar(){
   form.querySelectorAll(".campo-error").forEach(el=>el.classList.remove("campo-error"));
   document.querySelectorAll(".section-head.tiene-error").forEach(el=>el.classList.remove("tiene-error"));
 
+  // IMPORTANTE: expandir TODAS las secciones antes de validar. Si una
+  // sección queda cerrada (colapsada), sus campos quedan visualmente
+  // ocultos y la validación de abajo los saltaría sin revisarlos —
+  // permitiendo enviar el reporte con secciones enteras en blanco sin
+  // ningún aviso. Al expandir todo primero, nada puede quedar exento.
+  document.querySelectorAll(".section.collapsed").forEach(s=>s.classList.remove("collapsed"));
+
   // Validar campos obligatorios del encabezado
   const required = form.querySelectorAll("[required]");
   for(const r of required){
@@ -1247,31 +1348,65 @@ async function enviar(){
 
   // Validar TODOS los campos de texto (lecturas de equipos + observaciones):
   // deben tener al menos 2 caracteres. No deben estar vacíos ni tener solo 1.
-  const camposTexto = form.querySelectorAll('input[type="text"]:not([data-estado])');
-  let primerError = null;
-  camposTexto.forEach(inp=>{
-    // Saltar campos dentro de contenedores ocultos (anomalía sin comentario, alarma sin desc, etc.)
-    if(!inp.offsetParent) return;
-    // Saltar campos de celdas de batería (hidden inputs)
-    if(inp.type === "hidden") return;
-    const valor = inp.value.trim();
-    if(valor.length < 2){
-      inp.classList.add("campo-error");
-      const seccion = inp.closest(".section");
+  // EN MODO DE PRUEBA se salta esta validación por completo — solo se exige
+  // lo que ya se validó arriba (Turno y Operador, vía los campos "required").
+  if(!modoPrueba){
+    const camposTexto = form.querySelectorAll('input[type="text"]:not([data-estado])');
+    let primerError = null;
+    camposTexto.forEach(inp=>{
+      // Saltar campos dentro de contenedores ocultos (anomalía sin comentario, alarma sin desc, etc.)
+      if(!inp.offsetParent) return;
+      // Saltar campos de celdas de batería (hidden inputs)
+      if(inp.type === "hidden") return;
+      const valor = inp.value.trim();
+      if(valor.length < 2){
+        inp.classList.add("campo-error");
+        const seccion = inp.closest(".section");
+        if(seccion){
+          const head = seccion.querySelector(".section-head");
+          if(head) head.classList.add("tiene-error");
+        }
+        if(!primerError) primerError = inp;
+      }
+    });
+    if(primerError){
+      statusEl.textContent = "⚠ Hay campos sin llenar correctamente (resaltados en rojo). Revisa las secciones marcadas con ⚠.";
+      statusEl.className = "status err";
+      primerError.closest(".section")?.classList.remove("collapsed");
+      primerError.scrollIntoView({behavior:"smooth", block:"center"});
+      primerError.focus();
+      return;
+    }
+
+    // Validar que se haya SELECCIONADO algo en cada grupo de opciones —
+    // no basta con que el comentario esté bien si nunca se contestó
+    // "Sin anomalías / Con anomalía", "Sin alarma / Con alarma", el
+    // Nivel de agua, o el Modo de operación. Antes esto se podía dejar
+    // sin contestar y el reporte se enviaba igual.
+    form.querySelectorAll(".grupo-error").forEach(el=>el.classList.remove("grupo-error"));
+    let primerGrupoError = null;
+    function _marcarGrupoSinSeleccion(contenedor){
+      if(contenedor.querySelector('input[type="radio"]:checked')) return;
+      contenedor.classList.add("grupo-error");
+      const seccion = contenedor.closest(".section");
       if(seccion){
         const head = seccion.querySelector(".section-head");
         if(head) head.classList.add("tiene-error");
       }
-      if(!primerError) primerError = inp;
+      if(!primerGrupoError) primerGrupoError = contenedor;
     }
-  });
-  if(primerError){
-    statusEl.textContent = "⚠ Hay campos sin llenar correctamente (resaltados en rojo). Revisa las secciones marcadas con ⚠.";
-    statusEl.className = "status err";
-    primerError.closest(".section")?.classList.remove("collapsed");
-    primerError.scrollIntoView({behavior:"smooth", block:"center"});
-    primerError.focus();
-    return;
+    form.querySelectorAll(".anomalia-row").forEach(g=>{ if(g.offsetParent) _marcarGrupoSinSeleccion(g); });
+    form.querySelectorAll(".modo-alarma-fila").forEach(g=>{ if(g.offsetParent) _marcarGrupoSinSeleccion(g); });
+    form.querySelectorAll(".modo-operacion-fila").forEach(g=>{ if(g.offsetParent) _marcarGrupoSinSeleccion(g); });
+    form.querySelectorAll(".nivel-visual-panel").forEach(g=>{ if(g.offsetParent) _marcarGrupoSinSeleccion(g); });
+    form.querySelectorAll(".purga-fila").forEach(g=>{ if(g.offsetParent) _marcarGrupoSinSeleccion(g); });
+    if(primerGrupoError){
+      statusEl.textContent = "⚠ Falta seleccionar una opción (resaltado en rojo). Revisa las secciones marcadas con ⚠.";
+      statusEl.className = "status err";
+      primerGrupoError.closest(".section")?.classList.remove("collapsed");
+      primerGrupoError.scrollIntoView({behavior:"smooth", block:"center"});
+      return;
+    }
   }
 
   // Observaciones es opcional — no bloquear si está vacío
@@ -1289,9 +1424,16 @@ async function enviar(){
   const formData = new FormData(form);
   formData.append("access_key", WEB3FORMS_KEY);
   const sujetoBase = `Lectura de campo HUI/HUO/LCM - ${formData.get("Fecha")} - Turno ${formData.get("Turno")}`;
-  formData.append("subject", hayAlertaBaterias
-    ? `⚠ ALERTA BATERÍAS - ${sujetoBase}`
-    : sujetoBase);
+  formData.append("subject", modoPrueba
+    ? `🧪 PRUEBA - ${sujetoBase}`
+    : (hayAlertaBaterias
+      ? `⚠ ALERTA BATERÍAS - ${sujetoBase}`
+      : sujetoBase));
+  if(modoPrueba){
+    formData.append("Observaciones",
+      "*** ENVÍO DE PRUEBA — usado para verificar que el sistema (correo, Excel, PDF) funcione correctamente. No representa una lectura real. ***");
+  }
+
 
   try{
     const res = await fetch(ENDPOINT, {
@@ -1306,6 +1448,7 @@ async function enviar(){
       for(const [k,v] of formData.entries()) datosObj[k] = v;
       await generarPDF(datosObj);
 
+      if(modoPrueba) salirModoPrueba();
       document.getElementById("overlay").classList.remove("hidden");
     } else {
       statusEl.textContent = "✖ Error al enviar. Revisa tu conexión e intenta de nuevo.";
