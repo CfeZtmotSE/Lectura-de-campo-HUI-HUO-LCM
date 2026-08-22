@@ -198,9 +198,9 @@
   .bd-zona{ flex:1; display:flex; align-items:center; justify-content:center; padding:4px 2px;}
   .bd-linea{ padding:2px 4px; font-size:.55rem; text-align:center; border-top:2px dashed; border-bottom:2px dashed; font-weight:700;}
   .bd-alto{ background:#1a3a5c; color:#60a5fa;}
-  .bd-linea:first-of-type{ border-color:#60a5fa; color:#60a5fa; background:#0f2240;}
+  .bd-linea-max{ border-color:#60a5fa; color:#60a5fa; background:#0f2240;}
   .bd-correcto{ background:#0a2a1a; color:#4ade80; flex:2;}
-  .bd-linea:last-of-type{ border-color:#f59e0b; color:#f59e0b; background:#1a1200;}
+  .bd-linea-min{ border-color:#f59e0b; color:#f59e0b; background:#1a1200;}
   .bd-bajo{ background:#1a1000; color:#f59e0b;}
   .bd-critico{ background:#1a0000; color:#ef4444;}
   .nivel-btns{
@@ -447,7 +447,7 @@
     </div>
     <div class="header-badges">
       <span class="badge">Captura en sitio · Turno actual</span>
-      <span class="badge" style="border-color:#78BE20;color:#78BE20;">v23</span>
+      <span class="badge" style="border-color:#78BE20;color:#78BE20;">v24</span>
       <span class="badge" id="btnModoPrueba" style="cursor:pointer;border-color:#888;color:#888;" onclick="abrirLoginPrueba()">🧪 Modo de prueba</span>
     </div>
   </div>
@@ -768,9 +768,10 @@ function buildABCDouble(sec){
       ${estadoHtml(code)}`;
     sec.fieldsPerEquip.forEach(([label,key])=>{
       const esOperaciones = key === "ops";
+      const sufijo = esOperaciones ? "op." : "kPa";
       html += `<div class="phase-row"><span>${label}</span><div class="grid" style="grid-template-columns:repeat(3,1fr)">`;
       ["A","B","C"].forEach(ph=>{
-        html += field(ph, `${code} - ${label} - Fase ${ph}`,"number","", esOperaciones ? 'data-operaciones="1"' : "");
+        html += field(ph, `${code} - ${label} - Fase ${ph}`,"number",sufijo, esOperaciones ? 'data-operaciones="1"' : "");
       });
       html += `</div></div>`;
     });
@@ -878,9 +879,9 @@ function nivelAguaVisualHtml(name){
     <div class="nivel-visual-panel">
       <div class="bateria-diagram">
         <div class="bd-zona bd-alto">ALTO</div>
-        <div class="bd-linea">─ MAX ─</div>
+        <div class="bd-linea bd-linea-max">─ MAX ─</div>
         <div class="bd-zona bd-correcto">OK</div>
-        <div class="bd-linea">─ MIN ─</div>
+        <div class="bd-linea bd-linea-min">─ MIN ─</div>
         <div class="bd-zona bd-bajo">BAJO</div>
         <div class="bd-zona bd-critico">CRIT</div>
       </div>
@@ -888,12 +889,12 @@ function nivelAguaVisualHtml(name){
         <label class="nivel-btn nb-correcto">
           <input type="radio" name="${grupo}" value="Correcto" data-nivel="ok" data-banco-id="${id}">
           <span>✓ Correcto</span>
-          <small>Nivel entre líneas MIN y MAX</small>
+          <small>Arriba de la raya MIN, sin tocarla</small>
         </label>
         <label class="nivel-btn nb-bajo">
           <input type="radio" name="${grupo}" value="Bajo" data-nivel="alerta" data-banco-id="${id}">
           <span>⚠ Bajo</span>
-          <small>Por debajo de línea mínima</small>
+          <small>En la raya MIN o por debajo</small>
         </label>
         <label class="nivel-btn nb-critico">
           <input type="radio" name="${grupo}" value="Crítico" data-nivel="alerta" data-banco-id="${id}">
@@ -1053,8 +1054,8 @@ function buildInterr230(sec){
       <div class="equip-title">Bahía ${code}</div>
       ${estadoHtml("Interr " + code)}
       <div class="grid" style="grid-template-columns:repeat(2,1fr)">
-        ${field("Presión SF6", "Interr " + code + " - Presion SF6","number")}
-        ${field("No. Operaciones", "Interr " + code + " - No Operaciones","number","",'data-operaciones="1"')}
+        ${field("Presión SF6", "Interr " + code + " - Presion SF6","number","kPa")}
+        ${field("No. Operaciones", "Interr " + code + " - No Operaciones","number","op.",'data-operaciones="1"')}
       </div>
       ${anomHtml115}
     </div>`;
@@ -1071,10 +1072,10 @@ function buildPresionBanco13(sec){
       ${estadoHtml(code)}
       ${purgaHtml(code)}
       <div class="phase-row"><span>Pres. Gas</span><div class="grid" style="grid-template-columns:repeat(3,1fr)">
-        ${["A","B","C"].map(p=>field(p,`${code} - Presion Gas - ${p}`,"number")).join("")}
+        ${["A","B","C"].map(p=>field(p,`${code} - Presion Gas - ${p}`,"number","kPa")).join("")}
       </div></div>
       <div class="phase-row"><span>No. Oper.</span><div class="grid" style="grid-template-columns:repeat(3,1fr)">
-        ${["A","B","C"].map(p=>field(p,`${code} - No Operaciones - ${p}`,"number","",'data-operaciones="1"')).join("")}
+        ${["A","B","C"].map(p=>field(p,`${code} - No Operaciones - ${p}`,"number","op.",'data-operaciones="1"')).join("")}
       </div></div>
       ${anomHtml}
     </div>`;
