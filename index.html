@@ -447,7 +447,7 @@
     </div>
     <div class="header-badges">
       <span class="badge">Captura en sitio · Turno actual</span>
-      <span class="badge" style="border-color:#78BE20;color:#78BE20;">v24</span>
+      <span class="badge" style="border-color:#78BE20;color:#78BE20;">v25</span>
       <span class="badge" id="btnModoPrueba" style="cursor:pointer;border-color:#888;color:#888;" onclick="abrirLoginPrueba()">🧪 Modo de prueba</span>
     </div>
   </div>
@@ -1387,6 +1387,10 @@ async function enviar(){
     form.querySelectorAll(".grupo-error").forEach(el=>el.classList.remove("grupo-error"));
     let primerGrupoError = null;
     function _marcarGrupoSinSeleccion(contenedor){
+      // Si el equipo está en estado especial (Mantenimiento/Modernización/
+      // Fuera de Servicio), no se puede checar físicamente Anomalía, Alarma,
+      // Nivel de agua, Modo de operación ni Purga — no exigir selección.
+      if(contenedor.closest(".equip-block.estado-activo")) return;
       if(contenedor.querySelector('input[type="radio"]:checked')) return;
       contenedor.classList.add("grupo-error");
       const seccion = contenedor.closest(".section");
