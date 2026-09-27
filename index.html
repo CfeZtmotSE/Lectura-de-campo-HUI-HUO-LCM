@@ -447,7 +447,8 @@
     </div>
     <div class="header-badges">
       <span class="badge">Captura en sitio · Turno actual</span>
-      <span class="badge" style="border-color:#78BE20;color:#78BE20;">v25</span>
+      <span class="badge" style="border-color:#78BE20;color:#78BE20;">v26</span>
+      <span class="badge" id="badgeConfig" title="Sello de configuración — debe coincidir con el valor oficial. Si es distinto, el archivo fue modificado." style="border-color:#555;color:#777;font-family:'Consolas',monospace;">Cfg: ----</span>
       <span class="badge" id="btnModoPrueba" style="cursor:pointer;border-color:#888;color:#888;" onclick="abrirLoginPrueba()">🧪 Modo de prueba</span>
     </div>
   </div>
@@ -460,6 +461,7 @@
 
 <main>
   <form id="lecturaForm">
+    <input type="hidden" name="_app_version" value="v26">
 
     <!-- ===================== ENCABEZADO ===================== -->
     <div class="section">
@@ -539,6 +541,19 @@
    ============================================================ */
 const ENDPOINT = "https://api.web3forms.com/submit";
 const WEB3FORMS_KEY = "aac5c153-f05c-4f8c-87a1-b694b5d7114c";
+
+// — Sello de configuración: si alguien cambia ENDPOINT o WEB3FORMS_KEY
+// (por ejemplo, para redirigir a dónde llegan los datos), este código
+// cambia. Se muestra en el header para poder comparar a simple vista
+// contra el valor oficial, sin abrir el código.
+function _hashConfig(str){
+  let h = 0;
+  for(let i=0; i<str.length; i++){
+    h = (h * 31 + str.charCodeAt(i)) >>> 0;
+  }
+  return h.toString(16).toUpperCase().padStart(8,'0').slice(-4);
+}
+document.getElementById('badgeConfig').textContent = 'Cfg: ' + _hashConfig(ENDPOINT + '|' + WEB3FORMS_KEY);
 
 /* ============================================================
    MODO DE PRUEBA
