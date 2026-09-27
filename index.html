@@ -447,8 +447,10 @@
     </div>
     <div class="header-badges">
       <span class="badge">Captura en sitio · Turno actual</span>
-      <span class="badge" style="border-color:#78BE20;color:#78BE20;">v26</span>
+      <span class="badge" style="border-color:#78BE20;color:#78BE20;">v27</span>
       <span class="badge" id="badgeConfig" title="Sello de configuración — debe coincidir con el valor oficial. Si es distinto, el archivo fue modificado." style="border-color:#555;color:#777;font-family:'Consolas',monospace;">Cfg: ----</span>
+      <span class="badge" id="badgeTurnoSemana" style="border-color:#2E86AB;color:#2E86AB;"></span>
+      <span class="badge" id="badgeActividad" style="border-color:#f59e0b;color:#f59e0b;"></span>
       <span class="badge" id="btnModoPrueba" style="cursor:pointer;border-color:#888;color:#888;" onclick="abrirLoginPrueba()">🧪 Modo de prueba</span>
     </div>
   </div>
@@ -461,7 +463,7 @@
 
 <main>
   <form id="lecturaForm">
-    <input type="hidden" name="_app_version" value="v26">
+    <input type="hidden" name="_app_version" value="v27">
 
     <!-- ===================== ENCABEZADO ===================== -->
     <div class="section">
@@ -780,7 +782,8 @@ function buildABCDouble(sec){
   sec.items.forEach(code=>{
     html += `<div class="equip-block" style="grid-column:1/-1">
       <div class="equip-title">Bahía ${code}</div>
-      ${estadoHtml(code)}`;
+      ${estadoHtml(code)}
+      ${termografiaHtml(code)}`;
     sec.fieldsPerEquip.forEach(([label,key])=>{
       const esOperaciones = key === "ops";
       const sufijo = esOperaciones ? "op." : "kPa";
@@ -977,11 +980,55 @@ function buildSimple(sec){
   return html;
 }
 
+/* ============================================================
+   ROTACIÓN SEMANAL DE TURNO Y ACTIVIDADES POR DÍA
+   - A partir de la semana del lunes 28-sep-2026, se alterna cada
+     semana completa (lunes a domingo) entre Turno Matutino y
+     Turno Vespertino. Es solo informativo: el operador sigue
+     eligiendo el Turno manualmente en el formulario.
+   - Termografía: se habilita únicamente lunes y viernes.
+   - Purga de interruptor: se habilita únicamente miércoles y sábado.
+   ============================================================ */
+const ANCLA_SEMANA_MATUTINO = new Date(2026, 8, 28); // lunes 28-sep-2026 = Matutino
+
+function _inicioSemana(fecha){
+  const d = new Date(fecha);
+  d.setHours(0,0,0,0);
+  const dia = d.getDay(); // 0=domingo,1=lunes,...6=sábado
+  const offset = (dia === 0) ? -6 : (1 - dia);
+  d.setDate(d.getDate() + offset);
+  return d;
+}
+
+function turnoDeLaSemana(fecha = new Date()){
+  const lunesEsta = _inicioSemana(fecha);
+  const lunesAncla = _inicioSemana(ANCLA_SEMANA_MATUTINO);
+  const msPorSemana = 7*24*60*60*1000;
+  const semanas = Math.round((lunesEsta - lunesAncla) / msPorSemana);
+  const par = ((semanas % 2) + 2) % 2 === 0;
+  return par ? "Matutino" : "Vespertino";
+}
+
+const DIA_SEMANA_HOY = new Date().getDay(); // 0=domingo...6=sábado
+const ES_DIA_TERMOGRAFIA = (DIA_SEMANA_HOY === 1 || DIA_SEMANA_HOY === 5); // lunes o viernes
+const ES_DIA_PURGA = (DIA_SEMANA_HOY === 3 || DIA_SEMANA_HOY === 6); // miércoles o sábado
+
+const badgeTurnoSemana = document.getElementById('badgeTurnoSemana');
+if(badgeTurnoSemana) badgeTurnoSemana.textContent = 'Esta semana le toca: Turno ' + turnoDeLaSemana();
+
+const badgeActividad = document.getElementById('badgeActividad');
+if(badgeActividad){
+  if(ES_DIA_TERMOGRAFIA) badgeActividad.textContent = '🌡 Hoy toca: Termografía en bahías';
+  else if(ES_DIA_PURGA) badgeActividad.textContent = '🌬 Hoy toca: Purga en interruptores';
+  else badgeActividad.style.display = 'none';
+}
+
 // Códigos con casilla de purga
 const PURGA_CODES = new Set(["93790","92130","92120","97020","92080","92090","99010","92100","A3E50","A8050","A3E60","A8600"]);
 
 function purgaHtml(code){
   if(!PURGA_CODES.has(code)) return "";
+  if(!ES_DIA_PURGA) return "";
   return `<div class="modo-fila purga-fila" style="flex-wrap:wrap;">
     <span class="modo-fila-label">🌬 Purga de interruptor:</span>
     <label class="modo-btn-label">
@@ -993,6 +1040,22 @@ function purgaHtml(code){
   </div>`;
 }
 
+// Termografía: solo lunes y viernes, en todas las bahías (código con
+// título "Bahía ##"). Por cada fase se anota la temperatura más alta
+// encontrada y en qué punto/parte se encontró.
+function termografiaHtml(code){
+  if(!ES_DIA_TERMOGRAFIA) return "";
+  return `<div class="modo-fila" style="flex-wrap:wrap;">
+    <span class="modo-fila-label">🌡 Termografía — revisar cada punto:</span>
+  </div>
+  <div class="phase-row"><span>Temp. máx. (°C)</span><div class="grid" style="grid-template-columns:repeat(3,1fr)">
+    ${["A","B","C"].map(p=>field(p,`${code} - Termografia - Temp Max - ${p}`,"number","°C")).join("")}
+  </div></div>
+  <div class="phase-row"><span>¿En qué parte?</span><div class="grid" style="grid-template-columns:repeat(3,1fr)">
+    ${["A","B","C"].map(p=>field(p,`${code} - Termografia - Ubicacion - ${p}`,"text")).join("")}
+  </div></div>`;
+}
+
 function buildCamisa(sec){
   let html = '';
   sec.items.forEach(code=>{
@@ -1001,6 +1064,7 @@ function buildCamisa(sec){
       <div class="equip-title">Bahía ${code}</div>
       ${estadoHtml(code)}
       ${purgaHtml(code)}
+      ${termografiaHtml(code)}
       <div class="phase-row"><span>Pres. Gas</span><div class="grid" style="grid-template-columns:repeat(3,1fr)">
         ${["P1","P2","P3"].map(p=>field(p,`${code} - Presion Gas - ${p}`,"number")).join("")}
       </div></div>
@@ -1068,6 +1132,7 @@ function buildInterr230(sec){
     html += `<div class="equip-block">
       <div class="equip-title">Bahía ${code}</div>
       ${estadoHtml("Interr " + code)}
+      ${termografiaHtml("Interr " + code)}
       <div class="grid" style="grid-template-columns:repeat(2,1fr)">
         ${field("Presión SF6", "Interr " + code + " - Presion SF6","number","kPa")}
         ${field("No. Operaciones", "Interr " + code + " - No Operaciones","number","op.",'data-operaciones="1"')}
@@ -1086,6 +1151,7 @@ function buildPresionBanco13(sec){
       <div class="equip-title">Bahía ${code}</div>
       ${estadoHtml(code)}
       ${purgaHtml(code)}
+      ${termografiaHtml(code)}
       <div class="phase-row"><span>Pres. Gas</span><div class="grid" style="grid-template-columns:repeat(3,1fr)">
         ${["A","B","C"].map(p=>field(p,`${code} - Presion Gas - ${p}`,"number","kPa")).join("")}
       </div></div>
@@ -1882,6 +1948,38 @@ async function generarPDF(datos){
     });
     pageY += maxH+8;
   });
+
+  // ============ PÁGINA TERMOGRAFÍA (solo si se capturó ese día) ============
+  const CODIGOS_BAHIAS_TERMO = [
+    ...["A3D10","A3D20","A2110","A3I10","A3740","A3H80","A2070","A7020","A9010","A4020"],
+    ...["A9020","A9030","A1010","A8D10","A31D0","A4010","A1020","A3750","A8520"],
+    ...["A3E50","A8050","A3E60","A8600"],
+    ...["71010","72080","72090","72100","72120","72130","73430","73450","71060","73460",
+        "73920","73930","73980","73L90","73H90","77010","77020","79010"].map(c=>"Interr "+c),
+    ...["91030","91050","92070","92080","92090","92100","92110","92120","92130","93090","93790","97020","99010"],
+  ];
+  const hayTermografia = Object.keys(datos).some(k=>k.includes(" - Termografia - "));
+  if(hayTermografia){
+    doc.addPage();
+    doc.setFillColor(...VERDE);
+    doc.rect(0,0,PW,8,"F");
+    doc.setTextColor(255,255,255); doc.setFontSize(9); doc.setFont("helvetica","bold");
+    doc.text("TERMOGRAFÍA — PUNTO MÁS CALIENTE POR FASE", PW/2, 5.5, {align:"center"});
+    doc.setTextColor(...OSCURO);
+    y = 12;
+    const termoBody = [];
+    CODIGOS_BAHIAS_TERMO.forEach(code=>{
+      ["A","B","C"].forEach(f=>{
+        const temp = datos[`${code} - Termografia - Temp Max - ${f}`]||"";
+        const ubic = datos[`${code} - Termografia - Ubicacion - ${f}`]||"";
+        if(temp || ubic) termoBody.push([code, f, temp, ubic]);
+      });
+    });
+    y = seccionTabla("TERMOGRAFÍA POR BAHÍA Y FASE",{
+      head:[["Bahía","Fase","Temp. máx (°C)","Ubicación del punto"]],
+      body: termoBody
+    }, y, {0:{cellWidth:28},1:{cellWidth:14},2:{cellWidth:32}});
+  }
 
   // Pie de páginas
   const totalPags = doc.internal.getNumberOfPages();
