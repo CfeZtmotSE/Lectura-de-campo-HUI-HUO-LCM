@@ -469,7 +469,7 @@
     </div>
     <div class="header-badges">
       <span class="badge">Captura en sitio · Turno actual</span>
-      <span class="badge" style="border-color:#78BE20;color:#78BE20;">v30</span>
+      <span class="badge" style="border-color:#78BE20;color:#78BE20;">v31</span>
       <span class="badge" id="badgeConfig" title="Sello de configuración — debe coincidir con el valor oficial. Si es distinto, el archivo fue modificado." style="border-color:#78BE20;color:#78BE20;font-family:'Consolas',monospace;">Cfg: ----</span>
       <span class="badge" id="badgeTurnoSemana" style="border-color:#78BE20;color:#78BE20;"></span>
       <span class="badge" id="badgeActividad" style="border-color:#f59e0b;color:#f59e0b;"></span>
@@ -485,7 +485,7 @@
 
 <main>
   <form id="lecturaForm">
-    <input type="hidden" name="_app_version" value="v30">
+    <input type="hidden" name="_app_version" value="v31">
 
     <!-- ===================== ENCABEZADO ===================== -->
     <div class="section">
@@ -1647,14 +1647,45 @@ document.getElementById("lecturaForm").addEventListener("reset", function(){
     document.querySelectorAll("label.sel").forEach(function(l){ l.classList.remove("sel"); });
   }, 0);
 });
+
+/* Herramientas del PDF: se bajan en segundo plano (no frenan la página).
+   Primero del mismo sitio (libs/); si no existen (archivo copiado a una PC)
+   o fallan, se usa el respaldo externo. */
+var _URL_JSPDF_CDN = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+var _URL_AUTOTABLE_CDN = "https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js";
+var _pdfLibsPromesa = null;
+function _cargarScript(urls){
+  return new Promise(function(ok, fallo){
+    var i = 0;
+    (function intentar(){
+      if(i >= urls.length){ fallo(new Error("No se pudo cargar " + urls[urls.length-1])); return; }
+      var sc = document.createElement("script");
+      sc.src = urls[i++];
+      sc.onload = function(){ ok(); };
+      sc.onerror = function(){ if(sc.parentNode) sc.parentNode.removeChild(sc); intentar(); };
+      document.head.appendChild(sc);
+    })();
+  });
+}
+function _asegurarLibsPdf(){
+  if(window.jspdf && window.jspdf.jsPDF && window.jspdf.jsPDF.API && window.jspdf.jsPDF.API.autoTable){
+    return Promise.resolve();
+  }
+  if(!_pdfLibsPromesa){
+    _pdfLibsPromesa = _cargarScript(["libs/jspdf.umd.min.js", _URL_JSPDF_CDN])
+      .then(function(){ return _cargarScript(["libs/jspdf.plugin.autotable.min.js", _URL_AUTOTABLE_CDN]); })
+      .catch(function(e){ _pdfLibsPromesa = null; throw e; });
+  }
+  return _pdfLibsPromesa;
+}
+window.addEventListener("load", function(){ _asegurarLibsPdf().catch(function(){}); });
 window.__appListo = true;
 </script>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 
 <script>
 async function generarPDF(datos){
+  await _asegurarLibsPdf();
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation:"portrait", unit:"mm", format:"letter" });
   const PW = 215.9, PH = 279.4;
