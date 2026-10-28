@@ -489,7 +489,7 @@
     </div>
     <div class="header-badges">
       <span class="badge">Captura en sitio · Turno actual</span>
-      <span class="badge" style="border-color:#78BE20;color:#78BE20;">v32</span>
+      <span class="badge" style="border-color:#78BE20;color:#78BE20;">v33</span>
       <span class="badge" id="badgeConfig" title="Sello de configuración — debe coincidir con el valor oficial. Si es distinto, el archivo fue modificado." style="border-color:#78BE20;color:#78BE20;font-family:'Consolas',monospace;">Cfg: ----</span>
       <span class="badge" id="badgeTurnoSemana" style="border-color:#78BE20;color:#78BE20;"></span>
       <span class="badge" id="badgeActividad" style="border-color:#f59e0b;color:#f59e0b;"></span>
@@ -506,7 +506,7 @@
 <main>
   <div id="avisoLluvia"></div>
   <form id="lecturaForm">
-    <input type="hidden" name="_app_version" value="v32">
+    <input type="hidden" name="_app_version" value="v33">
 
     <!-- ===================== ENCABEZADO ===================== -->
     <div class="section">
@@ -1875,6 +1875,18 @@ document.getElementById("lecturaForm").addEventListener("reset", function(){
     _climaRefrescar();
   }, 0);
 });
+// Al regresar a la pantalla (celular que estaba apagado o en segundo plano) se
+// vuelve a consultar si el dato tiene más de 5 minutos.
+var _climaVolviendo = false;
+function _climaAlVolver(){
+  if(document.hidden || _climaVolviendo) return;
+  if((new Date().getTime() - _climaHora) < 300000) return;
+  _climaVolviendo = true;
+  _climaRefrescar().then(function(){ _climaVolviendo = false; }, function(){ _climaVolviendo = false; });
+}
+document.addEventListener("visibilitychange", _climaAlVolver);
+window.addEventListener("focus", _climaAlVolver);
+window.addEventListener("pageshow", _climaAlVolver);
 setInterval(function(){ _climaRefrescar(); }, 600000);
 if(document.readyState === "complete") _climaRefrescar();
 else window.addEventListener("load", function(){ _climaRefrescar(); });
