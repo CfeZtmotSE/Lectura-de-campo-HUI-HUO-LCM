@@ -427,6 +427,26 @@
     .header-badges{gap:4px;}
     input, select, textarea{font-size:16px;}
   }
+  /* ---- CLIMA ---- */
+  .clima-info{font-size:.82rem; padding:8px 10px; border-radius:5px; background:rgba(0,0,0,.06); margin:0 0 10px; line-height:1.35;}
+  .clima-info.ok{background:rgba(0,132,61,.22); color:#86efac;}
+  .clima-info.lluvia{background:rgba(37,99,235,.28); color:#bfdbfe;}
+  .clima-info.warn{background:rgba(245,158,11,.22); color:#fcd34d;}
+  .clima-row{display:flex; flex-wrap:wrap; gap:8px;}
+  .clima-btn{display:inline-flex; align-items:center; gap:6px; padding:8px 12px; border:1px solid #6b7280; border-radius:6px; font-size:.85rem; cursor:pointer;}
+  .clima-btn input{width:auto;}
+  .clima-btn.sel{background:rgba(0,132,61,.3); border-color:#78BE20; font-weight:600;}
+  .clima-btn.dis{opacity:.4; cursor:not-allowed;}
+  #avisoLluvia{
+    display:none; background:#1d4ed8; color:#fff; padding:10px 14px; margin:0 0 14px;
+    border-radius:6px; font-size:.88rem; line-height:1.4; font-weight:600;
+  }
+  body.modo-lluvia #avisoLluvia{display:block;}
+  body.modo-lluvia .section.susp-lluvia{opacity:.65;}
+  body.modo-lluvia .section.susp-lluvia .section-body{display:none !important;}
+  body.modo-lluvia .section.susp-lluvia .chev{display:none;}
+  body.modo-lluvia .section.susp-lluvia .section-head{cursor:default;}
+  body.modo-lluvia .section.susp-lluvia .section-head::after{content:"\26D4  Suspendida por lluvia"; font-size:.72rem; color:#b45309; font-weight:700;}
 </style>
 </head>
 <body>
@@ -469,7 +489,7 @@
     </div>
     <div class="header-badges">
       <span class="badge">Captura en sitio · Turno actual</span>
-      <span class="badge" style="border-color:#78BE20;color:#78BE20;">v31</span>
+      <span class="badge" style="border-color:#78BE20;color:#78BE20;">v32</span>
       <span class="badge" id="badgeConfig" title="Sello de configuración — debe coincidir con el valor oficial. Si es distinto, el archivo fue modificado." style="border-color:#78BE20;color:#78BE20;font-family:'Consolas',monospace;">Cfg: ----</span>
       <span class="badge" id="badgeTurnoSemana" style="border-color:#78BE20;color:#78BE20;"></span>
       <span class="badge" id="badgeActividad" style="border-color:#f59e0b;color:#f59e0b;"></span>
@@ -484,8 +504,9 @@
 </div>
 
 <main>
+  <div id="avisoLluvia"></div>
   <form id="lecturaForm">
-    <input type="hidden" name="_app_version" value="v31">
+    <input type="hidden" name="_app_version" value="v32">
 
     <!-- ===================== ENCABEZADO ===================== -->
     <div class="section">
@@ -506,6 +527,25 @@
           <div class="field"><label>Operador</label><input type="text" name="Operador" required></div>
           <div class="field"><label>Ayudante</label><input type="text" name="Ayudante"></div>
         </div>
+      </div>
+    </div>
+
+    <!-- ===================== CLIMA ===================== -->
+    <div class="section">
+      <div class="section-head" onclick="this.parentElement.classList.toggle('collapsed')"><h2>🌦 Clima</h2><span class="chev">▾</span></div>
+      <div class="section-body">
+        <div id="climaInfo" class="clima-info">Consultando el clima en internet…</div>
+        <div class="clima-row clima-fila">
+          <label class="clima-btn"><input type="radio" name="Clima - Condicion" value="Despejado"> ☀ Despejado</label>
+          <label class="clima-btn"><input type="radio" name="Clima - Condicion" value="Nublado"> ☁ Nublado</label>
+          <label class="clima-btn"><input type="radio" name="Clima - Condicion" value="Lluvia ligera"> 🌦 Lluvia ligera</label>
+          <label class="clima-btn"><input type="radio" name="Clima - Condicion" value="Lluvia"> 🌧 Lluvia</label>
+          <label class="clima-btn"><input type="radio" name="Clima - Condicion" value="Tormenta"> ⛈ Tormenta</label>
+        </div>
+        <p class="small-note" style="margin-top:10px;">Con lluvia solo se revisan los Bancos de Baterías y la Planta de Emergencia. El clima se verifica en internet.</p>
+        <input type="hidden" name="Clima - Verificacion Internet" id="climaVerif" value="">
+        <input type="hidden" name="Clima - Detalle Internet" id="climaDetalle" value="">
+        <input type="hidden" name="Clima - Revision Limitada" id="climaLimitada" value="No">
       </div>
     </div>
 
@@ -641,7 +681,7 @@ const sections = [
   },
   {
     title: "🔋 Bancos de Baterías — HUI",
-    type: "battery",
+    type: "battery", lluvia: true,
     items: [
       ["BCO 1 250VCD — Caseta Ppal"],
       ["BCO 2 250VCD — Caseta Ppal"],
@@ -651,22 +691,22 @@ const sections = [
   },
   {
     title: "🔋 Bancos de Baterías — HUO",
-    type: "battery",
+    type: "battery", lluvia: true,
     items: [["BCO 1 125VCD — Caseta HUO"],["BCO 2 125VCD — Caseta HUO"]]
   },
   {
     title: "🔋 Bancos de Baterías — LCM",
-    type: "battery",
+    type: "battery", lluvia: true,
     items: [["BCO 1 125VCD — Caseta LCM"],["BCO 2 125VCD — Caseta LCM"]]
   },
   {
     title: "🛢 Planta de Emergencia S.E. HUI",
-    type: "simple",
+    type: "simple", lluvia: true,
     items: [["Nivel Diesel Tanque 1","num","%"],["Nivel Diesel Tanque 2","num","%"]]
   },
   {
     title: "🛢 Planta de Emergencia S.E. LCM",
-    type: "simple",
+    type: "simple", lluvia: true,
     items: [["Nivel Diesel","num","%"]]
   },
   {
@@ -1240,7 +1280,7 @@ setInterval(actualizarFechaHora, 30000);
 const container = document.getElementById("dynamicSections");
 sections.forEach((sec, idx)=>{
   const div = document.createElement("div");
-  div.className = "section collapsed";
+  div.className = "section collapsed" + (sec.lluvia ? "" : " susp-lluvia");
   div.innerHTML = `
     <div class="section-head" onclick="this.parentElement.classList.toggle('collapsed')">
       <h2>${sec.title}</h2><span class="chev">▾</span>
@@ -1334,7 +1374,7 @@ document.addEventListener("input", e=>{
 document.addEventListener("change", e=>{
   const r = e.target;
   if(r.type !== "radio") return;
-  const grupo = r.closest(".anomalia-row, .modo-alarma-fila, .modo-operacion-fila, .nivel-visual-panel, .purga-fila");
+  const grupo = r.closest(".anomalia-row, .modo-alarma-fila, .modo-operacion-fila, .nivel-visual-panel, .purga-fila, .clima-fila");
   if(grupo && grupo.classList.contains("grupo-error")){
     grupo.classList.remove("grupo-error");
     const seccion = grupo.closest(".section");
@@ -1460,6 +1500,9 @@ async function enviar(){
   // ningún aviso. Al expandir todo primero, nada puede quedar exento.
   document.querySelectorAll(".section.collapsed").forEach(s=>s.classList.remove("collapsed"));
 
+  // Reconfirmar el clima en internet y dejar anotado cómo quedó
+  try{ await _climaPrepararEnvio(); }catch(eClima){ console.error("Clima:", eClima); }
+
   // Validar campos obligatorios del encabezado
   const required = form.querySelectorAll("[required]");
   for(const r of required){
@@ -1531,6 +1574,7 @@ async function enviar(){
     form.querySelectorAll(".modo-operacion-fila").forEach(g=>{ if(g.offsetParent) _marcarGrupoSinSeleccion(g); });
     form.querySelectorAll(".nivel-visual-panel").forEach(g=>{ if(g.offsetParent) _marcarGrupoSinSeleccion(g); });
     form.querySelectorAll(".purga-fila").forEach(g=>{ if(g.offsetParent) _marcarGrupoSinSeleccion(g); });
+    form.querySelectorAll(".clima-fila").forEach(g=>{ if(g.offsetParent) _marcarGrupoSinSeleccion(g); });
     if(primerGrupoError){
       statusEl.textContent = "⚠ Falta seleccionar una opción (resaltado en rojo). Revisa las secciones marcadas con ⚠.";
       statusEl.className = "status err";
@@ -1648,6 +1692,193 @@ document.getElementById("lecturaForm").addEventListener("reset", function(){
   }, 0);
 });
 
+/* ============================================================
+   CLIMA — se consulta el clima en internet (Open-Meteo, gratis, sin clave)
+   en las coordenadas de la S.E. HUI (HUO y LCM están a unos metros).
+   Si llueve, solo quedan activos los Bancos de Baterías y la Planta de
+   Emergencia. Con internet no se puede declarar lluvia si no la hay, ni
+   quitarla si sí la hay. Sin internet se deja elegir y queda como
+   "sin verificar" (el servidor lo revisa después).
+   ============================================================ */
+var CLIMA_LAT = 25.7245, CLIMA_LON = -100.1028;
+var CLIMA_UMBRAL_MM = 0.2;
+var CLIMA_LLUVIA = ["Lluvia ligera","Lluvia","Tormenta"];
+var _climaNet = null, _climaIntentado = false, _climaHora = 0;
+var _badgeActividadOriginal = badgeActividad ? badgeActividad.textContent : "";
+
+function _climaEsLluvia(c){ return CLIMA_LLUVIA.indexOf(c) >= 0; }
+
+function _climaValor(){
+  var r = document.querySelector('input[name="Clima - Condicion"]:checked');
+  return r ? r.value : "";
+}
+
+function _climaCondicionDeCodigo(c){
+  if(c === 0 || c === 1) return "Despejado";
+  if(c === 95 || c === 96 || c === 99) return "Tormenta";
+  if(c === 63 || c === 65 || c === 66 || c === 67 || c === 81 || c === 82) return "Lluvia";
+  if(c === 51 || c === 53 || c === 55 || c === 56 || c === 57 || c === 61 || c === 80) return "Lluvia ligera";
+  return "Nublado";
+}
+
+function _climaEvaluar(j){
+  var cur = j.current || {};
+  var cod = Number(cur.weather_code);
+  var pAct = Number(cur.precipitation) || 0;
+  var hp = (j.hourly && j.hourly.precipitation) || [];
+  var p3 = 0;
+  for(var i=0; i<hp.length; i++) p3 += Number(hp[i]) || 0;
+  var cond = _climaCondicionDeCodigo(cod);
+  var porCodigo = _climaEsLluvia(cond);
+  var llueve = porCodigo || pAct > 0 || p3 >= CLIMA_UMBRAL_MM;
+  if(llueve && !porCodigo) cond = (Math.max(pAct, p3) >= 2.5) ? "Lluvia" : "Lluvia ligera";
+  var d = new Date();
+  var hh = ("0"+d.getHours()).slice(-2) + ":" + ("0"+d.getMinutes()).slice(-2);
+  var temp = (cur.temperature_2m !== undefined && cur.temperature_2m !== null) ? Number(cur.temperature_2m).toFixed(1) + " °C" : "";
+  var detalle = cond + (temp ? " · " + temp : "") +
+    " · lluvia ahora " + pAct.toFixed(1) + " mm · últimas 3 h " + p3.toFixed(1) + " mm" +
+    " · consultado " + hh;
+  return { llueve: llueve, condicion: cond, detalle: detalle };
+}
+
+function _climaConsultar(tiempo){
+  var url = "https://api.open-meteo.com/v1/forecast?latitude=" + CLIMA_LAT + "&longitude=" + CLIMA_LON +
+    "&current=temperature_2m,precipitation,weather_code&hourly=precipitation&past_hours=2&forecast_hours=1" +
+    "&timezone=America%2FMexico_City";
+  return new Promise(function(ok){
+    var listo = false;
+    var t = setTimeout(function(){ if(!listo){ listo = true; ok(null); } }, tiempo || 8000);
+    fetch(url).then(function(r){
+      if(!r.ok) throw new Error("http");
+      return r.json();
+    }).then(function(j){
+      if(listo) return;
+      listo = true; clearTimeout(t);
+      try{ ok(_climaEvaluar(j)); }catch(e){ ok(null); }
+    }).catch(function(){
+      if(listo) return;
+      listo = true; clearTimeout(t); ok(null);
+    });
+  });
+}
+
+function _climaActualizarModo(){
+  var lluvia = _climaEsLluvia(_climaValor());
+  document.body.classList.toggle("modo-lluvia", lluvia);
+  var lim = document.getElementById("climaLimitada");
+  if(lim) lim.value = lluvia ? "Si" : "No";
+  var aviso = document.getElementById("avisoLluvia");
+  if(aviso){
+    var extra = "";
+    if(ES_DIA_TERMOGRAFIA) extra = " La termografía de hoy queda pendiente.";
+    else if(ES_DIA_PURGA) extra = " La purga de hoy queda pendiente.";
+    aviso.textContent = "☔ LLUVIA — Solo se revisan los Bancos de Baterías y la Planta de Emergencia." + extra;
+  }
+  if(badgeActividad){
+    if(lluvia){
+      badgeActividad.textContent = "☔ Lluvia: solo Baterías y Planta de Emergencia";
+      badgeActividad.style.display = "";
+    } else {
+      badgeActividad.textContent = _badgeActividadOriginal;
+      if(!_badgeActividadOriginal) badgeActividad.style.display = "none";
+    }
+  }
+}
+
+function _climaPintarOpciones(){
+  var rs = document.querySelectorAll('input[name="Clima - Condicion"]');
+  for(var i=0; i<rs.length; i++){
+    var l = rs[i].closest("label");
+    if(l){
+      l.classList.toggle("sel", rs[i].checked);
+      l.classList.toggle("dis", rs[i].disabled);
+    }
+  }
+}
+
+function _climaAplicar(res, soloEncender){
+  var rs = document.querySelectorAll('input[name="Clima - Condicion"]');
+  var info = document.getElementById("climaInfo");
+  var i, actual = _climaValor();
+  if(soloEncender && !(res && res.llueve)) return;
+  _climaNet = res;
+  _climaIntentado = true;
+  if(!res){
+    for(i=0; i<rs.length; i++) rs[i].disabled = false;
+    info.className = "clima-info warn";
+    info.textContent = "⚠ No se pudo consultar el clima en internet. Selecciona el clima que ves; quedará como «sin verificar» y se revisará después.";
+  } else if(res.llueve){
+    for(i=0; i<rs.length; i++){
+      if(rs[i].value === res.condicion){ rs[i].checked = true; rs[i].disabled = false; }
+      else { rs[i].checked = false; rs[i].disabled = true; }
+    }
+    info.className = "clima-info lluvia";
+    info.textContent = "🌧 Internet reporta lluvia en la subestación (" + res.detalle + "). Solo se revisan Bancos de Baterías y Planta de Emergencia.";
+  } else {
+    for(i=0; i<rs.length; i++){
+      var esLl = _climaEsLluvia(rs[i].value);
+      rs[i].disabled = esLl;
+      if(esLl && rs[i].checked) rs[i].checked = false;
+    }
+    if(!_climaValor()){
+      for(i=0; i<rs.length; i++){ if(rs[i].value === res.condicion) rs[i].checked = true; }
+    }
+    info.className = "clima-info ok";
+    info.textContent = "✔ Internet (S.E. HUI): " + res.detalle + ". Sin lluvia: se revisa todo el equipo." +
+      (_climaEsLluvia(actual) ? " (Ya no se registra lluvia, se reactivó la revisión completa.)" : "");
+  }
+  _climaPintarOpciones();
+  _climaActualizarModo();
+}
+
+function _climaRefrescar(soloEncender, tiempo){
+  return _climaConsultar(tiempo).then(function(res){
+    if(res) _climaHora = new Date().getTime();
+    else if(_climaNet) res = _climaNet;   // falla pasajera: se conserva el último dato bueno
+    _climaAplicar(res, soloEncender);
+  });
+}
+
+async function _climaPrepararEnvio(){
+  var reciente = _climaNet && (new Date().getTime() - _climaHora) < 120000;
+  if(!document.body.classList.contains("modo-lluvia") && !reciente){
+    var st = document.getElementById("status");
+    if(st){ st.textContent = "Verificando el clima en internet..."; st.className = "status"; }
+    await _climaRefrescar(true, 4000);
+  }
+  var cond = _climaValor();
+  var verif, det;
+  if(_climaNet){
+    verif = (_climaEsLluvia(cond) === _climaNet.llueve) ? "Confirmado por internet" : "No coincide con internet";
+    det = _climaNet.detalle;
+  } else {
+    verif = "Sin verificar (sin internet)";
+    det = "No se pudo consultar internet";
+  }
+  document.getElementById("climaVerif").value = verif;
+  document.getElementById("climaDetalle").value = det;
+  document.getElementById("climaLimitada").value = _climaEsLluvia(cond) ? "Si" : "No";
+}
+
+document.addEventListener("change", function(e){
+  if(e.target && e.target.name === "Clima - Condicion"){
+    _climaPintarOpciones();
+    _climaActualizarModo();
+  }
+});
+document.getElementById("lecturaForm").addEventListener("reset", function(){
+  setTimeout(function(){
+    document.getElementById("climaVerif").value = "";
+    document.getElementById("climaDetalle").value = "";
+    if(_climaIntentado) _climaAplicar(_climaNet);
+    else { _climaPintarOpciones(); _climaActualizarModo(); }
+    _climaRefrescar();
+  }, 0);
+});
+setInterval(function(){ _climaRefrescar(); }, 600000);
+if(document.readyState === "complete") _climaRefrescar();
+else window.addEventListener("load", function(){ _climaRefrescar(); });
+
 /* Herramientas del PDF: se bajan en segundo plano (no frenan la página).
    Primero del mismo sitio (libs/); si no existen (archivo copiado a una PC)
    o fallan, se usa el respaldo externo. */
@@ -1721,6 +1952,7 @@ async function generarPDF(datos){
     ["Turno",    datos["Turno"]||""],
     ["Operador", datos["Operador"]||""],
     ["Ayudante", datos["Ayudante"]||""],
+    ["Clima",    (datos["Clima - Condicion"]||"-") + (datos["Clima - Revision Limitada"] === "Si" ? "  (solo Baterías y Planta de Emergencia)" : "") + (datos["Clima - Verificacion Internet"] ? "  ·  " + datos["Clima - Verificacion Internet"] : "")],
   ];
   doc.autoTable({
     startY: y,
