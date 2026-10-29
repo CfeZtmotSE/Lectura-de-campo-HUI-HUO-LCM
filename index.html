@@ -447,6 +447,19 @@
   body.modo-lluvia .section.susp-lluvia .chev{display:none;}
   body.modo-lluvia .section.susp-lluvia .section-head{cursor:default;}
   body.modo-lluvia .section.susp-lluvia .section-head::after{content:"\26D4  Suspendida por lluvia"; font-size:.72rem; color:#b45309; font-weight:700;}
+  /* ---- PERSONAL (lista de nombres) ---- */
+  .field select{width:100%;}
+  .otro-nombre{margin-top:6px;}
+  select.campo-error{border-color:#ef4444 !important; box-shadow:0 0 0 2px rgba(239,68,68,.35);}
+  /* ---- COMPLEMENTO POR LLUVIA ---- */
+  #avisoComplemento{
+    display:none; background:#0e7490; color:#fff; padding:10px 14px; margin:0 0 14px;
+    border-radius:6px; font-size:.88rem; line-height:1.4; font-weight:600;
+  }
+  #avisoComplemento u{cursor:pointer; margin-left:8px; font-weight:400;}
+  body.modo-complemento #avisoComplemento{display:block;}
+  body.modo-complemento #secClima,
+  body.modo-complemento #dynamicSections .section:not(.susp-lluvia){display:none;}
 </style>
 </head>
 <body>
@@ -489,10 +502,11 @@
     </div>
     <div class="header-badges">
       <span class="badge">Captura en sitio · Turno actual</span>
-      <span class="badge" style="border-color:#78BE20;color:#78BE20;">v34</span>
+      <span class="badge" style="border-color:#78BE20;color:#78BE20;">v35</span>
       <span class="badge" id="badgeConfig" title="Sello de configuración — debe coincidir con el valor oficial. Si es distinto, el archivo fue modificado." style="border-color:#78BE20;color:#78BE20;font-family:'Consolas',monospace;">Cfg: ----</span>
       <span class="badge" id="badgeTurnoSemana" style="border-color:#78BE20;color:#78BE20;"></span>
       <span class="badge" id="badgeActividad" style="border-color:#f59e0b;color:#f59e0b;"></span>
+      <span class="badge" id="btnComplemento" style="cursor:pointer;border-color:#60a5fa;color:#60a5fa;" onclick="_activarComplemento(true)">☔ Completar pendientes de lluvia</span>
       <span class="badge" id="btnModoPrueba" style="cursor:pointer;border-color:#888;color:#888;" onclick="abrirLoginPrueba()">🧪 Modo de prueba</span>
     </div>
   </div>
@@ -505,8 +519,9 @@
 
 <main>
   <div id="avisoLluvia"></div>
+  <div id="avisoComplemento">☔ COMPLEMENTO POR LLUVIA — Selecciona el MISMO turno de la lectura que quedó pendiente y llena solo lo que faltó revisar. <u onclick="_activarComplemento(false)">Cancelar</u></div>
   <form id="lecturaForm">
-    <input type="hidden" name="_app_version" value="v34">
+    <input type="hidden" name="_app_version" value="v35">
 
     <!-- ===================== ENCABEZADO ===================== -->
     <div class="section">
@@ -524,14 +539,25 @@
               <option>Vespertino</option>
             </select>
           </div>
-          <div class="field"><label>Operador</label><input type="text" name="Operador" required></div>
-          <div class="field"><label>Ayudante</label><input type="text" name="Ayudante"></div>
+          <div class="field">
+            <label>Operador</label>
+            <select id="selOperador"></select>
+            <input type="text" id="otroOperador" class="otro-nombre" placeholder="Escribe el nombre completo" autocomplete="off" style="display:none">
+            <input type="hidden" name="Operador" id="valOperador" value="">
+          </div>
+          <div class="field">
+            <label>Ayudante</label>
+            <select id="selAyudante"></select>
+            <input type="text" id="otroAyudante" class="otro-nombre" placeholder="Escribe el nombre completo" autocomplete="off" style="display:none">
+            <input type="hidden" name="Ayudante" id="valAyudante" value="">
+          </div>
+          <input type="hidden" name="Tipo de Envio" id="tipoEnvio" value="">
         </div>
       </div>
     </div>
 
     <!-- ===================== CLIMA ===================== -->
-    <div class="section">
+    <div class="section" id="secClima">
       <div class="section-head" onclick="this.parentElement.classList.toggle('collapsed')"><h2>🌦 Clima</h2><span class="chev">▾</span></div>
       <div class="section-body">
         <div id="climaInfo" class="clima-info">Consultando el clima en internet…</div>
@@ -1503,6 +1529,17 @@ async function enviar(){
   // Reconfirmar el clima en internet y dejar anotado cómo quedó
   try{ await _climaPrepararEnvio(); }catch(eClima){ console.error("Clima:", eClima); }
 
+  // Operador y Ayudante (lista de nombres, o "Otro" escrito a mano)
+  const errPersonal = _validarPersonal();
+  if(errPersonal){
+    statusEl.textContent = "⚠ " + errPersonal.mensaje;
+    statusEl.className = "status err";
+    errPersonal.campo.classList.add("campo-error");
+    errPersonal.campo.scrollIntoView({behavior:"smooth", block:"center"});
+    errPersonal.campo.focus();
+    return;
+  }
+
   // Validar campos obligatorios del encabezado
   const required = form.querySelectorAll("[required]");
   for(const r of required){
@@ -1603,7 +1640,7 @@ async function enviar(){
 
   const formData = new FormData(form);
   formData.append("access_key", WEB3FORMS_KEY);
-  const sujetoBase = `Lectura de campo HUI/HUO/LCM - ${formData.get("Fecha")} - Turno ${formData.get("Turno")}`;
+  const sujetoBase = `Lectura de campo HUI/HUO/LCM - ${formData.get("Fecha")} - Turno ${formData.get("Turno")}` + (modoComplemento ? " - COMPLEMENTO POR LLUVIA" : "");
   const etiquetasAlerta = [];
   if(hayAlertaBaterias) etiquetasAlerta.push("BATERÍAS");
   if(hayAlertaTermografia) etiquetasAlerta.push("TERMOGRAFÍA (" + bahiasConAlertaTermo.join(", ") + ")");
@@ -1631,7 +1668,8 @@ async function enviar(){
       const datosObj = {};
       for(const [k,v] of formData.entries()) datosObj[k] = v;
       try{
-        await generarPDF(datosObj);
+        // El complemento no genera PDF aquí: el servidor arma el PDF completo.
+        if(!modoComplemento) await generarPDF(datosObj);
       }catch(errPdf){
         console.error("PDF falló:", errPdf);
         statusEl.textContent = "✔ Lectura enviada. ⚠ El PDF no se pudo generar en este equipo; avisa al administrador.";
@@ -1639,6 +1677,14 @@ async function enviar(){
       }
 
       if(modoPrueba) salirModoPrueba();
+      var _notaFinal = "";
+      if(modoComplemento){
+        _notaFinal = "Complemento recibido. Se agregará a la lectura de este turno.";
+      } else if(_climaEsLluvia(_climaValor())){
+        var _finTurno = (formData.get("Turno") === "Vespertino") ? "23:00" : "15:00";
+        _notaFinal = "☔ Quedó pendiente la revisión del resto del equipo. Cuando deje de llover usa «Completar pendientes de lluvia» (arriba) antes de las " + _finTurno + ".";
+      }
+      document.getElementById("overlayNota").textContent = _notaFinal;
       document.getElementById("overlay").classList.remove("hidden");
     } else {
       statusEl.textContent = "✖ Error al enviar. Revisa tu conexión e intenta de nuevo.";
@@ -1671,6 +1717,7 @@ function cerrarOverlay(){
   });
   document.querySelectorAll(".alarma-detalle").forEach(d=>d.style.display="none");
   document.getElementById("overlay").classList.add("hidden");
+  if(modoComplemento) _activarComplemento(false);
   document.getElementById("status").textContent = "Llena los campos y envía. Se borrarán automáticamente al confirmar.";
   document.getElementById("status").className = "status";
   document.querySelectorAll(".section").forEach(s=>s.classList.add("collapsed"));
@@ -1764,7 +1811,7 @@ function _climaConsultar(tiempo){
 }
 
 function _climaActualizarModo(){
-  var lluvia = _climaEsLluvia(_climaValor());
+  var lluvia = !modoComplemento && _climaEsLluvia(_climaValor());
   document.body.classList.toggle("modo-lluvia", lluvia);
   var lim = document.getElementById("climaLimitada");
   if(lim) lim.value = lluvia ? "Si" : "No";
@@ -1864,7 +1911,8 @@ async function _climaPrepararEnvio(){
   }
   document.getElementById("climaVerif").value = verif;
   document.getElementById("climaDetalle").value = det;
-  document.getElementById("climaLimitada").value = _climaEsLluvia(cond) ? "Si" : "No";
+  document.getElementById("climaLimitada").value = (!modoComplemento && _climaEsLluvia(cond)) ? "Si" : "No";
+  if(modoComplemento) _climaLluviaSinConfirmar = false;
 }
 
 document.addEventListener("change", function(e){
@@ -1900,6 +1948,114 @@ window.addEventListener("pageshow", _climaAlVolver);
 setInterval(function(){ _climaRefrescar(); }, 600000);
 if(document.readyState === "complete") _climaRefrescar();
 else window.addEventListener("load", function(){ _climaRefrescar(); });
+
+/* ============================================================
+   PERSONAL — lista de nombres para Operador y Ayudante (la misma lista
+   para los dos: cuando un operador falta, el ayudante lo cubre).
+   Para quien cubre y no está en la lista: opción "Otro".
+   AGREGA O QUITA NOMBRES AQUÍ (y sube la versión).
+   ============================================================ */
+var PERSONAL = [
+  "Alan Zuñiga Castillo",
+  "Efraim Gilberto Garza Elguezabal",
+  "Héctor Gutiérrez Ovalle",
+  "Jorge A. Tijerina Llera",
+  "Juan Eduardo Hernández Aguilar",
+  "Juan José Colín Ayala",
+  "Mario García Salinas",
+  "Miguel Fraga Soto"
+];
+
+var _PARTICULAS = ["de","del","la","las","los","y","e","van","von"];
+function _tituloNombre(t){
+  var p = String(t || "").replace(/\s+/g, " ").trim().toLowerCase().split(" ");
+  for(var i=0; i<p.length; i++){
+    if(!p[i]) continue;
+    if(i > 0 && _PARTICULAS.indexOf(p[i]) >= 0) continue;
+    p[i] = p[i].charAt(0).toUpperCase() + p[i].slice(1);
+  }
+  return p.join(" ");
+}
+
+function _llenarPersonal(){
+  ["Operador","Ayudante"].forEach(function(rol){
+    var sel = document.getElementById("sel" + rol);
+    function op(valor, texto){
+      var o = document.createElement("option");
+      o.value = valor; o.textContent = texto; sel.appendChild(o);
+    }
+    sel.innerHTML = "";
+    op("", "-- selecciona --");
+    if(rol === "Ayudante") op("Sin ayudante", "Sin ayudante");
+    PERSONAL.forEach(function(n){ op(n, n); });
+    op("__otro__", "Otro (escribir nombre)…");
+  });
+}
+
+function _actualizarPersona(rol){
+  var sel = document.getElementById("sel" + rol);
+  var otro = document.getElementById("otro" + rol);
+  var val = document.getElementById("val" + rol);
+  var esOtro = sel.value === "__otro__";
+  otro.style.display = esOtro ? "" : "none";
+  val.value = esOtro ? _tituloNombre(otro.value) : sel.value;
+  sel.classList.remove("campo-error");
+}
+
+function _validarPersonal(){
+  var res = null;
+  var vals = {};
+  ["Operador","Ayudante"].forEach(function(rol){
+    if(res) return;
+    var sel = document.getElementById("sel" + rol);
+    var otro = document.getElementById("otro" + rol);
+    _actualizarPersona(rol);
+    vals[rol] = document.getElementById("val" + rol).value;
+    if(!sel.value){
+      res = { mensaje: "Falta seleccionar: " + rol, campo: sel };
+    } else if(sel.value === "__otro__"){
+      var n = vals[rol];
+      if(n.length < 5 || n.indexOf(" ") < 0){
+        res = { mensaje: "Escribe el nombre completo de: " + rol, campo: otro };
+      }
+    }
+  });
+  if(!res && vals.Operador && vals.Ayudante && vals.Operador.toLowerCase() === vals.Ayudante.toLowerCase()){
+    res = { mensaje: "El operador y el ayudante no pueden ser la misma persona.", campo: document.getElementById("selAyudante") };
+  }
+  return res;
+}
+
+_llenarPersonal();
+["Operador","Ayudante"].forEach(function(rol){
+  document.getElementById("sel" + rol).addEventListener("change", function(){ _actualizarPersona(rol); });
+  document.getElementById("otro" + rol).addEventListener("input", function(){ _actualizarPersona(rol); });
+});
+document.getElementById("lecturaForm").addEventListener("reset", function(){
+  setTimeout(function(){
+    ["Operador","Ayudante"].forEach(function(rol){
+      document.getElementById("otro" + rol).value = "";
+      _actualizarPersona(rol);
+    });
+  }, 0);
+});
+
+/* ============================================================
+   COMPLEMENTO POR LLUVIA — cuando deja de llover, se llena solo lo
+   que quedó pendiente (todo menos Baterías y Planta de Emergencia).
+   El servidor lo agrega a la lectura del mismo día y turno.
+   ============================================================ */
+var modoComplemento = false;
+function _activarComplemento(activar){
+  modoComplemento = !!activar;
+  document.body.classList.toggle("modo-complemento", modoComplemento);
+  document.getElementById("tipoEnvio").value = modoComplemento ? "Complemento" : "";
+  _climaActualizarModo();
+  if(modoComplemento){
+    document.querySelectorAll("#dynamicSections .section.susp-lluvia").forEach(function(sc){ sc.classList.remove("collapsed"); });
+  }
+  window.scrollTo({top:0, behavior:"smooth"});
+}
 
 /* Herramientas del PDF: se bajan en segundo plano (no frenan la página).
    Primero del mismo sitio (libs/); si no existen (archivo copiado a una PC)
