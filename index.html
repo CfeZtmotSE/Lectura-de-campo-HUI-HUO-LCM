@@ -489,7 +489,7 @@
     </div>
     <div class="header-badges">
       <span class="badge">Captura en sitio · Turno actual</span>
-      <span class="badge" style="border-color:#78BE20;color:#78BE20;">v33</span>
+      <span class="badge" style="border-color:#78BE20;color:#78BE20;">v34</span>
       <span class="badge" id="badgeConfig" title="Sello de configuración — debe coincidir con el valor oficial. Si es distinto, el archivo fue modificado." style="border-color:#78BE20;color:#78BE20;font-family:'Consolas',monospace;">Cfg: ----</span>
       <span class="badge" id="badgeTurnoSemana" style="border-color:#78BE20;color:#78BE20;"></span>
       <span class="badge" id="badgeActividad" style="border-color:#f59e0b;color:#f59e0b;"></span>
@@ -506,7 +506,7 @@
 <main>
   <div id="avisoLluvia"></div>
   <form id="lecturaForm">
-    <input type="hidden" name="_app_version" value="v33">
+    <input type="hidden" name="_app_version" value="v34">
 
     <!-- ===================== ENCABEZADO ===================== -->
     <div class="section">
@@ -542,7 +542,7 @@
           <label class="clima-btn"><input type="radio" name="Clima - Condicion" value="Lluvia"> 🌧 Lluvia</label>
           <label class="clima-btn"><input type="radio" name="Clima - Condicion" value="Tormenta"> ⛈ Tormenta</label>
         </div>
-        <p class="small-note" style="margin-top:10px;">Con lluvia solo se revisan los Bancos de Baterías y la Planta de Emergencia. El clima se verifica en internet.</p>
+        <p class="small-note" style="margin-top:10px;">Con lluvia solo se revisan los Bancos de Baterías y la Planta de Emergencia. El clima se compara con internet; si marcas lluvia y internet no la registra, se envía una alerta al supervisor.</p>
         <input type="hidden" name="Clima - Verificacion Internet" id="climaVerif" value="">
         <input type="hidden" name="Clima - Detalle Internet" id="climaDetalle" value="">
         <input type="hidden" name="Clima - Revision Limitada" id="climaLimitada" value="No">
@@ -1607,6 +1607,7 @@ async function enviar(){
   const etiquetasAlerta = [];
   if(hayAlertaBaterias) etiquetasAlerta.push("BATERÍAS");
   if(hayAlertaTermografia) etiquetasAlerta.push("TERMOGRAFÍA (" + bahiasConAlertaTermo.join(", ") + ")");
+  if(_climaLluviaSinConfirmar) etiquetasAlerta.push("LLUVIA SIN CONFIRMAR");
   formData.append("subject", modoPrueba
     ? `🧪 PRUEBA - ${sujetoBase}`
     : (etiquetasAlerta.length
@@ -1796,36 +1797,38 @@ function _climaPintarOpciones(){
   }
 }
 
-function _climaAplicar(res, soloEncender){
+var _climaAuto = true;               // true mientras el clima lo haya puesto el formulario, no el operador
+var _climaLluviaSinConfirmar = false;
+
+function _climaAplicar(res){
   var rs = document.querySelectorAll('input[name="Clima - Condicion"]');
   var info = document.getElementById("climaInfo");
   var i, actual = _climaValor();
-  if(soloEncender && !(res && res.llueve)) return;
   _climaNet = res;
   _climaIntentado = true;
+  for(i=0; i<rs.length; i++) rs[i].disabled = false;
+  if(res && (_climaAuto || !actual)){
+    for(i=0; i<rs.length; i++) rs[i].checked = (rs[i].value === res.condicion);
+    _climaAuto = true;
+    actual = res.condicion;
+  }
   if(!res){
-    for(i=0; i<rs.length; i++) rs[i].disabled = false;
     info.className = "clima-info warn";
     info.textContent = "⚠ No se pudo consultar el clima en internet. Selecciona el clima que ves; quedará como «sin verificar» y se revisará después.";
   } else if(res.llueve){
-    for(i=0; i<rs.length; i++){
-      if(rs[i].value === res.condicion){ rs[i].checked = true; rs[i].disabled = false; }
-      else { rs[i].checked = false; rs[i].disabled = true; }
+    if(_climaEsLluvia(actual)){
+      info.className = "clima-info lluvia";
+      info.textContent = "🌧 Internet reporta lluvia en la subestación (" + res.detalle + "). Solo se revisan Bancos de Baterías y Planta de Emergencia.";
+    } else {
+      info.className = "clima-info warn";
+      info.textContent = "⚠ Internet reporta lluvia (" + res.detalle + ") pero tienes marcado «" + actual + "». Verifica el clima.";
     }
-    info.className = "clima-info lluvia";
-    info.textContent = "🌧 Internet reporta lluvia en la subestación (" + res.detalle + "). Solo se revisan Bancos de Baterías y Planta de Emergencia.";
+  } else if(_climaEsLluvia(actual)){
+    info.className = "clima-info warn";
+    info.textContent = "⚠ Internet no registra lluvia en este momento (" + res.detalle + "). Si de verdad está lloviendo, continúa: se enviará una alerta al supervisor para que lo verifique.";
   } else {
-    for(i=0; i<rs.length; i++){
-      var esLl = _climaEsLluvia(rs[i].value);
-      rs[i].disabled = esLl;
-      if(esLl && rs[i].checked) rs[i].checked = false;
-    }
-    if(!_climaValor()){
-      for(i=0; i<rs.length; i++){ if(rs[i].value === res.condicion) rs[i].checked = true; }
-    }
     info.className = "clima-info ok";
-    info.textContent = "✔ Internet (S.E. HUI): " + res.detalle + ". Sin lluvia: se revisa todo el equipo." +
-      (_climaEsLluvia(actual) ? " (Ya no se registra lluvia, se reactivó la revisión completa.)" : "");
+    info.textContent = "✔ Internet (S.E. HUI): " + res.detalle + ". Sin lluvia: se revisa todo el equipo.";
   }
   _climaPintarOpciones();
   _climaActualizarModo();
@@ -1848,8 +1851,12 @@ async function _climaPrepararEnvio(){
   }
   var cond = _climaValor();
   var verif, det;
+  _climaLluviaSinConfirmar = false;
   if(_climaNet){
-    verif = (_climaEsLluvia(cond) === _climaNet.llueve) ? "Confirmado por internet" : "No coincide con internet";
+    var declLluvia = _climaEsLluvia(cond);
+    if(declLluvia === _climaNet.llueve) verif = "Confirmado por internet";
+    else if(declLluvia){ verif = "No coincide: se declaró lluvia y internet no la registra"; _climaLluviaSinConfirmar = true; }
+    else verif = "No coincide: internet registra lluvia";
     det = _climaNet.detalle;
   } else {
     verif = "Sin verificar (sin internet)";
@@ -1862,6 +1869,8 @@ async function _climaPrepararEnvio(){
 
 document.addEventListener("change", function(e){
   if(e.target && e.target.name === "Clima - Condicion"){
+    _climaAuto = false;
+    if(_climaNet) _climaAplicar(_climaNet);
     _climaPintarOpciones();
     _climaActualizarModo();
   }
@@ -1870,6 +1879,7 @@ document.getElementById("lecturaForm").addEventListener("reset", function(){
   setTimeout(function(){
     document.getElementById("climaVerif").value = "";
     document.getElementById("climaDetalle").value = "";
+    _climaAuto = true;
     if(_climaIntentado) _climaAplicar(_climaNet);
     else { _climaPintarOpciones(); _climaActualizarModo(); }
     _climaRefrescar();
