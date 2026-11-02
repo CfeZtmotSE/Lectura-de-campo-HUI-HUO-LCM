@@ -460,6 +460,10 @@
   body.modo-complemento #avisoComplemento{display:block;}
   body.modo-complemento #secClima,
   body.modo-complemento #dynamicSections .section:not(.susp-lluvia){display:none;}
+  /* ---- ROL DE TURNOS ---- */
+  .cambio-chk{font-size:.78rem; margin-top:5px; display:flex; align-items:center; gap:6px; cursor:pointer;}
+  .cambio-chk input{width:auto;}
+  select:disabled{opacity:.85; cursor:not-allowed;}
 </style>
 </head>
 <body>
@@ -502,7 +506,7 @@
     </div>
     <div class="header-badges">
       <span class="badge">Captura en sitio · Turno actual</span>
-      <span class="badge" style="border-color:#78BE20;color:#78BE20;">v37</span>
+      <span class="badge" style="border-color:#78BE20;color:#78BE20;">v38</span>
       <span class="badge" id="badgeConfig" title="Sello de configuración — debe coincidir con el valor oficial. Si es distinto, el archivo fue modificado." style="border-color:#78BE20;color:#78BE20;font-family:'Consolas',monospace;">Cfg: ----</span>
       <span class="badge" id="badgeTurnoSemana" style="border-color:#78BE20;color:#78BE20;"></span>
       <span class="badge" id="badgeActividad" style="border-color:#f59e0b;color:#f59e0b;"></span>
@@ -521,7 +525,7 @@
   <div id="avisoLluvia"></div>
   <div id="avisoComplemento">☔ COMPLEMENTO POR LLUVIA — Selecciona el MISMO turno de la lectura que quedó pendiente y llena solo lo que faltó revisar. <u onclick="_activarComplemento(false)">Cancelar</u></div>
   <form id="lecturaForm">
-    <input type="hidden" name="_app_version" value="v37">
+    <input type="hidden" name="_app_version" value="v38">
 
     <!-- ===================== ENCABEZADO ===================== -->
     <div class="section">
@@ -542,15 +546,23 @@
           <div class="field">
             <label>Operador</label>
             <select id="selOperador"></select>
+            <label class="cambio-chk" id="lblCambioOperador" style="display:none"><input type="checkbox" id="chkCambioOperador"> Hubo cambio</label>
             <input type="text" id="otroOperador" class="otro-nombre" placeholder="Escribe el nombre completo" autocomplete="off" style="display:none">
             <input type="hidden" name="Operador" id="valOperador" value="">
           </div>
           <div class="field">
             <label>Ayudante</label>
             <select id="selAyudante"></select>
+            <label class="cambio-chk" id="lblCambioAyudante" style="display:none"><input type="checkbox" id="chkCambioAyudante"> Hubo cambio</label>
             <input type="text" id="otroAyudante" class="otro-nombre" placeholder="Escribe el nombre completo" autocomplete="off" style="display:none">
             <input type="hidden" name="Ayudante" id="valAyudante" value="">
           </div>
+          <div id="rolInfo" class="clima-info ok" style="display:none; grid-column:1/-1;"></div>
+          <input type="hidden" name="Grupo Programado" id="valGrupo" value="">
+          <input type="hidden" name="Programado Operador" id="valProgOp" value="">
+          <input type="hidden" name="Programado Ayudante" id="valProgAy" value="">
+          <input type="hidden" name="Cambio Operador" id="valCambioOp" value="">
+          <input type="hidden" name="Cambio Ayudante" id="valCambioAy" value="">
           <div id="bloqueSinPersonal" style="display:none; grid-column:1/-1;">
             <div class="clima-info warn" id="avisoSinPersonal"></div>
             <div class="field">
@@ -2036,6 +2048,7 @@ function _sinPersonal(){
   return "";
 }
 function _actualizarSinPersonal(){
+  _actualizarCambios();
   var sp = _sinPersonal();
   document.getElementById("valSinPersonal").value = sp;
   document.getElementById("bloqueSinPersonal").style.display = sp ? "" : "none";
@@ -2043,6 +2056,12 @@ function _actualizarSinPersonal(){
     document.getElementById("avisoSinPersonal").textContent =
       "⚠ Marcaste «" + sp + "». Ya no es obligatorio llenar la lectura, pero se avisará al supervisor para que lo valide. Indica quién faltó y el motivo.";
     document.getElementById("lblFalto").textContent = "¿Quién faltó? (nombre del " + sp.replace("Sin ", "") + " que no vino)";
+    if(_rolProg){
+      // se sugiere quien estaba programado en ese puesto (se puede cambiar)
+      var progFalta = (sp === "Sin operador") ? _rolProg.op : _rolProg.ay;
+      var sfa = document.getElementById("selFalto");
+      if(!sfa.value && progFalta){ sfa.value = progFalta; document.getElementById("valFalto").value = progFalta; }
+    }
   }
 }
 
@@ -2103,7 +2122,115 @@ document.getElementById("lecturaForm").addEventListener("reset", function(){
       document.getElementById("otro" + rol).value = "";
       _actualizarPersona(rol);
     });
+    _aplicarRol();
   }, 0);
+});
+
+/* ============================================================
+   ROL DE TURNOS — qué pareja (operador + ayudante) le toca a cada turno.
+   El rol de los operadores es un ciclo de 20 días que se repite solo: la posición
+   0 del ciclo es la fecha "ancla". Si el rol cambia, agrega un periodo nuevo (con su
+   fecha "desde") y sube la versión. Turno 2 = Matutino, Turno 3 = Vespertino.
+   ============================================================ */
+var GRUPOS_ROL = {
+  A: ["Juan Eduardo Hernández Aguilar", "Héctor Gutiérrez Ovalle"],
+  B: ["Juan José Colín Ayala", "Alan Zuñiga Castillo"],
+  C: ["Miguel Fraga Soto", "Mario García Salinas"],
+  D: ["Jorge A. Tijerina Llera", "Efraim Gilberto Garza Elguezabal"]
+};
+var ROL_PERIODOS = [
+  {desde: "2026-09-28", ancla: "2027-01-01",
+   ciclo: {A: "11111XX22222X33333XX", B: "XX22222X33333XX11111", C: "22X33333XX11111XX222", D: "333XX11111XX22222X33"}}
+];
+var _CODIGO_TURNO = {"Matutino": "2", "Vespertino": "3"};
+var _rolProg = null;   // {g, op, ay} del turno elegido, o null si no hay rol para esa fecha
+
+function _diasEntre(a, b){
+  var pa = a.split("-"), pb = b.split("-");
+  return Math.round((Date.UTC(+pb[0], +pb[1]-1, +pb[2]) - Date.UTC(+pa[0], +pa[1]-1, +pa[2])) / 86400000);
+}
+function _grupoProgramado(fecha, turno){
+  var cod = _CODIGO_TURNO[turno];
+  if(!cod) return null;
+  var per = null;
+  for(var i=0; i<ROL_PERIODOS.length; i++){ if(fecha >= ROL_PERIODOS[i].desde) per = ROL_PERIODOS[i]; }
+  if(!per) return null;
+  var idx = ((_diasEntre(per.ancla, fecha) % 20) + 20) % 20;
+  for(var g in per.ciclo){ if(per.ciclo[g].charAt(idx) === cod) return g; }
+  return null;
+}
+// El vespertino enviado después de la medianoche pertenece al día anterior
+function _fechaDelTurno(turno){
+  var f = document.getElementById("campoFecha").value;
+  var h = parseInt(String(document.getElementById("campoHora").value).split(":")[0], 10);
+  if(turno === "Vespertino" && !isNaN(h) && h < 4 && f){
+    var p = f.split("-");
+    var d = new Date(Date.UTC(+p[0], +p[1]-1, +p[2]) - 86400000);
+    return d.getUTCFullYear() + "-" + ("0"+(d.getUTCMonth()+1)).slice(-2) + "-" + ("0"+d.getUTCDate()).slice(-2);
+  }
+  return f;
+}
+function _actualizarCambios(){
+  var op = document.getElementById("valCambioOp"), ay = document.getElementById("valCambioAy");
+  if(!_rolProg){ op.value = ""; ay.value = ""; return; }
+  op.value = (document.getElementById("valOperador").value !== _rolProg.op) ? "Si" : "No";
+  ay.value = (document.getElementById("valAyudante").value !== _rolProg.ay) ? "Si" : "No";
+}
+function _aplicarRol(){
+  var turno = document.querySelector('select[name="Turno"]').value;
+  var g = turno ? _grupoProgramado(_fechaDelTurno(turno), turno) : null;
+  var info = document.getElementById("rolInfo");
+  var roles = ["Operador", "Ayudante"];
+  // al cambiar de turno se limpia el nombre sugerido de "¿Quién faltó?"
+  document.getElementById("selFalto").value = "";
+  document.getElementById("otroFalto").value = "";
+  document.getElementById("otroFalto").style.display = "none";
+  document.getElementById("valFalto").value = "";
+  roles.forEach(function(rol){
+    document.getElementById("chkCambio" + rol).checked = false;
+    document.getElementById("lblCambio" + rol).style.display = g ? "" : "none";
+  });
+  if(!g){
+    _rolProg = null;
+    info.style.display = "none";
+    roles.forEach(function(rol){ document.getElementById("sel" + rol).disabled = false; });
+    ["valGrupo","valProgOp","valProgAy"].forEach(function(id){ document.getElementById(id).value = ""; });
+    _actualizarCambios();
+    return;
+  }
+  var par = GRUPOS_ROL[g];
+  _rolProg = {g: g, op: par[0], ay: par[1]};
+  info.style.display = "";
+  info.textContent = "📅 Programado en este turno: Grupo " + g + " — " + par[0] + " (operador) y " + par[1] +
+    " (ayudante). Si hubo un cambio, marca «Hubo cambio» junto al nombre y elige a quien está.";
+  document.getElementById("selOperador").value = par[0];
+  document.getElementById("selAyudante").value = par[1];
+  roles.forEach(function(rol){
+    document.getElementById("sel" + rol).disabled = true;
+    document.getElementById("otro" + rol).value = "";
+    _actualizarPersona(rol);
+  });
+  document.getElementById("valGrupo").value = g;
+  document.getElementById("valProgOp").value = par[0];
+  document.getElementById("valProgAy").value = par[1];
+  _actualizarCambios();
+}
+function _alMarcarCambio(rol){
+  var chk = document.getElementById("chkCambio" + rol);
+  var sel = document.getElementById("sel" + rol);
+  if(!_rolProg) return;
+  if(chk.checked){
+    sel.disabled = false;
+  } else {
+    sel.value = (rol === "Operador") ? _rolProg.op : _rolProg.ay;
+    sel.disabled = true;
+    document.getElementById("otro" + rol).value = "";
+    _actualizarPersona(rol);
+  }
+}
+document.querySelector('select[name="Turno"]').addEventListener("change", _aplicarRol);
+["Operador", "Ayudante"].forEach(function(rol){
+  document.getElementById("chkCambio" + rol).addEventListener("change", function(){ _alMarcarCambio(rol); });
 });
 
 /* ============================================================
