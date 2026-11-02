@@ -428,10 +428,17 @@
     input, select, textarea{font-size:16px;}
   }
   /* ---- CLIMA ---- */
-  .clima-info{font-size:.82rem; padding:8px 10px; border-radius:5px; background:rgba(0,0,0,.06); margin:0 0 10px; line-height:1.35;}
-  .clima-info.ok{background:rgba(0,132,61,.22); color:#86efac;}
-  .clima-info.lluvia{background:rgba(37,99,235,.28); color:#bfdbfe;}
-  .clima-info.warn{background:rgba(245,158,11,.22); color:#fcd34d;}
+  .clima-info{font-size:.86rem; padding:9px 11px; border-radius:5px; background:#374151; color:#fff; border:1px solid #9ca3af; margin:0 0 10px; line-height:1.4;}
+  .clima-info.ok{background:#14532d; color:#fff; border-color:#4ade80;}
+  .clima-info.lluvia{background:#1e3a8a; color:#fff; border-color:#93c5fd;}
+  .clima-info.warn{background:#78350f; color:#fff; border-color:#fbbf24;}
+  /* Letreros del encabezado: letra blanca para que se lean sobre el verde */
+  header .badge{color:#fff !important; border-color:rgba(255,255,255,.85) !important; background:rgba(0,0,0,.25);}
+  header #badgeActividad{border-color:#fcd34d !important; background:rgba(120,53,15,.7);}
+  header #btnComplemento{border-color:#bfdbfe !important; background:rgba(30,58,138,.75);}
+  header #btnModoPrueba{background:rgba(0,0,0,.4);}
+  /* Turno automático: se ve bloqueado */
+  select.bloqueado{pointer-events:none; opacity:.9;}
   .clima-row{display:flex; flex-wrap:wrap; gap:8px;}
   .clima-btn{display:inline-flex; align-items:center; gap:6px; padding:8px 12px; border:1px solid #6b7280; border-radius:6px; font-size:.85rem; cursor:pointer;}
   .clima-btn input{width:auto;}
@@ -461,7 +468,7 @@
   body.modo-complemento #secClima,
   body.modo-complemento #dynamicSections .section:not(.susp-lluvia){display:none;}
   /* ---- ROL DE TURNOS ---- */
-  .cambio-chk{font-size:.78rem; margin-top:5px; display:flex; align-items:center; gap:6px; cursor:pointer;}
+  .cambio-chk{font-size:.8rem; margin-top:5px; display:flex; align-items:center; gap:6px; cursor:pointer; color:#e5e7eb;}
   .cambio-chk input{width:auto;}
   select:disabled{opacity:.85; cursor:not-allowed;}
 </style>
@@ -506,7 +513,7 @@
     </div>
     <div class="header-badges">
       <span class="badge">Captura en sitio · Turno actual</span>
-      <span class="badge" style="border-color:#78BE20;color:#78BE20;">v38</span>
+      <span class="badge" style="border-color:#78BE20;color:#78BE20;">v39</span>
       <span class="badge" id="badgeConfig" title="Sello de configuración — debe coincidir con el valor oficial. Si es distinto, el archivo fue modificado." style="border-color:#78BE20;color:#78BE20;font-family:'Consolas',monospace;">Cfg: ----</span>
       <span class="badge" id="badgeTurnoSemana" style="border-color:#78BE20;color:#78BE20;"></span>
       <span class="badge" id="badgeActividad" style="border-color:#f59e0b;color:#f59e0b;"></span>
@@ -525,7 +532,7 @@
   <div id="avisoLluvia"></div>
   <div id="avisoComplemento">☔ COMPLEMENTO POR LLUVIA — Selecciona el MISMO turno de la lectura que quedó pendiente y llena solo lo que faltó revisar. <u onclick="_activarComplemento(false)">Cancelar</u></div>
   <form id="lecturaForm">
-    <input type="hidden" name="_app_version" value="v38">
+    <input type="hidden" name="_app_version" value="v39">
 
     <!-- ===================== ENCABEZADO ===================== -->
     <div class="section">
@@ -536,12 +543,13 @@
           <div class="field"><label>Fecha (automática)</label><input type="text" name="Fecha" id="campoFecha" readonly required></div>
           <div class="field"><label>Hora de la lectura (automática)</label><input type="text" name="Hora" id="campoHora" readonly required></div>
           <div class="field">
-            <label>Turno</label>
+            <label>Turno (automático)</label>
             <select name="Turno" required>
               <option value="">-- selecciona --</option>
               <option>Matutino</option>
               <option>Vespertino</option>
             </select>
+            <label class="cambio-chk"><input type="checkbox" id="chkCambiarTurno"> Cambiar turno (solo si no es el que corresponde)</label>
           </div>
           <div class="field">
             <label>Operador</label>
@@ -1327,7 +1335,7 @@ function actualizarFechaHora(){
     `${pad(now.getHours())}:${pad(now.getMinutes())}`;
 }
 actualizarFechaHora();
-setInterval(actualizarFechaHora, 30000);
+setInterval(function(){ actualizarFechaHora(); if(window._turnoListo) _turnoAutomatico(); }, 30000);
 
 const container = document.getElementById("dynamicSections");
 sections.forEach((sec, idx)=>{
@@ -2122,7 +2130,7 @@ document.getElementById("lecturaForm").addEventListener("reset", function(){
       document.getElementById("otro" + rol).value = "";
       _actualizarPersona(rol);
     });
-    _aplicarRol();
+    if(window._turnoListo) _turnoAutomatico(); else _aplicarRol();
   }, 0);
 });
 
@@ -2229,6 +2237,39 @@ function _alMarcarCambio(rol){
   }
 }
 document.querySelector('select[name="Turno"]').addEventListener("change", _aplicarRol);
+
+/* ============================================================
+   TURNO AUTOMÁTICO — el turno sale del turno de la semana (alternan Matutino y
+   Vespertino cada semana). El vespertino sigue hasta la madrugada (antes de las 4).
+   ============================================================ */
+var _turnoListo = false;
+function _turnoCorresponde(){
+  var f = document.getElementById("campoFecha").value;
+  var h = parseInt(String(document.getElementById("campoHora").value).split(":")[0], 10);
+  if(!f) return turnoDeLaSemana();
+  var p = f.split("-");
+  if(!isNaN(h) && h < 4){
+    var ayer = new Date(+p[0], +p[1]-1, +p[2]-1);
+    if(turnoDeLaSemana(ayer) === "Vespertino") return "Vespertino";
+  }
+  return turnoDeLaSemana(new Date(+p[0], +p[1]-1, +p[2]));
+}
+function _turnoAutomatico(){
+  var chk = document.getElementById("chkCambiarTurno");
+  var sel = document.querySelector('select[name="Turno"]');
+  if(chk && chk.checked) return;
+  var t = _turnoCorresponde();
+  if(sel.value !== t){ sel.value = t; _aplicarRol(); }
+  sel.classList.add("bloqueado");
+  sel.tabIndex = -1;
+}
+document.getElementById("chkCambiarTurno").addEventListener("change", function(){
+  var sel = document.querySelector('select[name="Turno"]');
+  if(this.checked){ sel.classList.remove("bloqueado"); sel.tabIndex = 0; }
+  else { _turnoAutomatico(); }
+});
+_turnoListo = true;
+_turnoAutomatico();
 ["Operador", "Ayudante"].forEach(function(rol){
   document.getElementById("chkCambio" + rol).addEventListener("change", function(){ _alMarcarCambio(rol); });
 });
