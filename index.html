@@ -513,11 +513,11 @@
     </div>
     <div class="header-badges">
       <span class="badge">Captura en sitio · Turno actual</span>
-      <span class="badge" style="border-color:#78BE20;color:#78BE20;">v39</span>
+      <span class="badge" style="border-color:#78BE20;color:#78BE20;">v40</span>
       <span class="badge" id="badgeConfig" title="Sello de configuración — debe coincidir con el valor oficial. Si es distinto, el archivo fue modificado." style="border-color:#78BE20;color:#78BE20;font-family:'Consolas',monospace;">Cfg: ----</span>
       <span class="badge" id="badgeTurnoSemana" style="border-color:#78BE20;color:#78BE20;"></span>
       <span class="badge" id="badgeActividad" style="border-color:#f59e0b;color:#f59e0b;"></span>
-      <span class="badge" id="btnComplemento" style="cursor:pointer;border-color:#60a5fa;color:#60a5fa;" onclick="_activarComplemento(true)">☔ Completar pendientes de lluvia</span>
+      <span class="badge" id="btnComplemento" style="display:none;cursor:pointer;border-color:#60a5fa;color:#60a5fa;" onclick="_activarComplemento(true)">☔ Completar pendientes de lluvia</span>
       <span class="badge" id="btnModoPrueba" style="cursor:pointer;border-color:#888;color:#888;" onclick="abrirLoginPrueba()">🧪 Modo de prueba</span>
     </div>
   </div>
@@ -532,7 +532,7 @@
   <div id="avisoLluvia"></div>
   <div id="avisoComplemento">☔ COMPLEMENTO POR LLUVIA — Selecciona el MISMO turno de la lectura que quedó pendiente y llena solo lo que faltó revisar. <u onclick="_activarComplemento(false)">Cancelar</u></div>
   <form id="lecturaForm">
-    <input type="hidden" name="_app_version" value="v39">
+    <input type="hidden" name="_app_version" value="v40">
 
     <!-- ===================== ENCABEZADO ===================== -->
     <div class="section">
@@ -1335,7 +1335,7 @@ function actualizarFechaHora(){
     `${pad(now.getHours())}:${pad(now.getMinutes())}`;
 }
 actualizarFechaHora();
-setInterval(function(){ actualizarFechaHora(); if(window._turnoListo) _turnoAutomatico(); }, 30000);
+setInterval(function(){ actualizarFechaHora(); if(window._turnoListo){ _turnoAutomatico(); _revisarPendienteLluvia(); } }, 30000);
 
 const container = document.getElementById("dynamicSections");
 sections.forEach((sec, idx)=>{
@@ -1716,6 +1716,10 @@ async function enviar(){
         statusEl.className = "status err";
       }
 
+      if(!modoPrueba){
+        if(modoComplemento) _guardarPendiente(null);
+        else if(_climaEsLluvia(_climaValor())) _guardarPendiente({fecha: String(formData.get("Fecha")), turno: String(formData.get("Turno"))});
+      }
       if(modoPrueba) salirModoPrueba();
       var _notaFinal = "";
       if(modoComplemento){
@@ -1724,7 +1728,7 @@ async function enviar(){
         _notaFinal = "Reporte enviado como «" + _sinPersonal() + "». Se avisó al supervisor para que lo valide.";
       } else if(_climaEsLluvia(_climaValor())){
         var _finTurno = (formData.get("Turno") === "Vespertino") ? "23:00" : "15:00";
-        _notaFinal = "☔ Quedó pendiente la revisión del resto del equipo. Cuando deje de llover usa «Completar pendientes de lluvia» (arriba) antes de las " + _finTurno + ".";
+        _notaFinal = "☔ Quedó pendiente la revisión del resto del equipo. Cuando deje de llover usa «Completar pendientes de lluvia» (arriba) HOY MISMO. Después de hoy ya no se podrá completar y quedará como no realizada.";
       }
       document.getElementById("overlayNota").textContent = _notaFinal;
       document.getElementById("overlay").classList.remove("hidden");
@@ -2131,6 +2135,7 @@ document.getElementById("lecturaForm").addEventListener("reset", function(){
       _actualizarPersona(rol);
     });
     if(window._turnoListo) _turnoAutomatico(); else _aplicarRol();
+    if(window._turnoListo) _revisarPendienteLluvia();
   }, 0);
 });
 
@@ -2257,7 +2262,7 @@ function _turnoCorresponde(){
 function _turnoAutomatico(){
   var chk = document.getElementById("chkCambiarTurno");
   var sel = document.querySelector('select[name="Turno"]');
-  if(chk && chk.checked) return;
+  if(modoComplemento || (chk && chk.checked)) return;
   var t = _turnoCorresponde();
   if(sel.value !== t){ sel.value = t; _aplicarRol(); }
   sel.classList.add("bloqueado");
@@ -2270,6 +2275,7 @@ document.getElementById("chkCambiarTurno").addEventListener("change", function()
 });
 _turnoListo = true;
 _turnoAutomatico();
+_revisarPendienteLluvia();
 ["Operador", "Ayudante"].forEach(function(rol){
   document.getElementById("chkCambio" + rol).addEventListener("change", function(){ _alMarcarCambio(rol); });
 });
@@ -2279,15 +2285,43 @@ _turnoAutomatico();
    que quedó pendiente (todo menos Baterías y Planta de Emergencia).
    El servidor lo agrega a la lectura del mismo día y turno.
    ============================================================ */
+/* El pendiente de lluvia se recuerda en este equipo y solo vale el MISMO DÍA:
+   al cambiar la fecha la opción desaparece y ya no se puede completar. */
+var _CLAVE_PEND = "pendienteLluviaHUI";
+function _leerPendiente(){
+  try{ var t = localStorage.getItem(_CLAVE_PEND); return t ? JSON.parse(t) : null; }catch(e){ return null; }
+}
+function _guardarPendiente(p){
+  try{ if(p) localStorage.setItem(_CLAVE_PEND, JSON.stringify(p)); else localStorage.removeItem(_CLAVE_PEND); }catch(e){}
+}
+function _revisarPendienteLluvia(){
+  var p = _leerPendiente();
+  var hoy = document.getElementById("campoFecha").value;
+  if(p && p.fecha !== hoy){ _guardarPendiente(null); p = null; }
+  var b = document.getElementById("btnComplemento");
+  if(b) b.style.display = p ? "" : "none";
+  if(!p && modoComplemento) _activarComplemento(false);
+  return p;
+}
+
 var modoComplemento = false;
 function _activarComplemento(activar){
+  if(activar) _revisarPendienteLluvia();   // si ya cambió el día, la opción se quita en este instante
+  var pend = activar ? _leerPendiente() : null;
+  if(activar && !pend) return;   // sin pendiente de hoy no hay nada que completar
   modoComplemento = !!activar;
+  if(pend){
+    // el complemento va con el mismo turno de la lectura que quedó pendiente
+    document.querySelector('select[name="Turno"]').value = pend.turno;
+    _aplicarRol();
+  }
   document.body.classList.toggle("modo-complemento", modoComplemento);
   document.getElementById("tipoEnvio").value = modoComplemento ? "Complemento" : "";
   _climaActualizarModo();
   if(modoComplemento){
     document.querySelectorAll("#dynamicSections .section.susp-lluvia").forEach(function(sc){ sc.classList.remove("collapsed"); });
   }
+  if(!modoComplemento && window._turnoListo) _turnoAutomatico();
   window.scrollTo({top:0, behavior:"smooth"});
 }
 
