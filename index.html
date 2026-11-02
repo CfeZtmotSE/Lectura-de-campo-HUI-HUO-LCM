@@ -502,7 +502,7 @@
     </div>
     <div class="header-badges">
       <span class="badge">Captura en sitio · Turno actual</span>
-      <span class="badge" style="border-color:#78BE20;color:#78BE20;">v35</span>
+      <span class="badge" style="border-color:#78BE20;color:#78BE20;">v36</span>
       <span class="badge" id="badgeConfig" title="Sello de configuración — debe coincidir con el valor oficial. Si es distinto, el archivo fue modificado." style="border-color:#78BE20;color:#78BE20;font-family:'Consolas',monospace;">Cfg: ----</span>
       <span class="badge" id="badgeTurnoSemana" style="border-color:#78BE20;color:#78BE20;"></span>
       <span class="badge" id="badgeActividad" style="border-color:#f59e0b;color:#f59e0b;"></span>
@@ -521,7 +521,7 @@
   <div id="avisoLluvia"></div>
   <div id="avisoComplemento">☔ COMPLEMENTO POR LLUVIA — Selecciona el MISMO turno de la lectura que quedó pendiente y llena solo lo que faltó revisar. <u onclick="_activarComplemento(false)">Cancelar</u></div>
   <form id="lecturaForm">
-    <input type="hidden" name="_app_version" value="v35">
+    <input type="hidden" name="_app_version" value="v36">
 
     <!-- ===================== ENCABEZADO ===================== -->
     <div class="section">
@@ -551,6 +551,14 @@
             <input type="text" id="otroAyudante" class="otro-nombre" placeholder="Escribe el nombre completo" autocomplete="off" style="display:none">
             <input type="hidden" name="Ayudante" id="valAyudante" value="">
           </div>
+          <div id="bloqueSinPersonal" style="display:none; grid-column:1/-1;">
+            <div class="clima-info warn" id="avisoSinPersonal"></div>
+            <div class="field">
+              <label>Motivo (obligatorio)</label>
+              <input type="text" id="motivoSinPersonal" name="Motivo Sin Personal" placeholder="Ej. falta de cobertura, incapacidad, permiso..." autocomplete="off">
+            </div>
+          </div>
+          <input type="hidden" name="Sin Personal" id="valSinPersonal" value="">
           <input type="hidden" name="Tipo de Envio" id="tipoEnvio" value="">
         </div>
       </div>
@@ -1557,7 +1565,7 @@ async function enviar(){
   // deben tener al menos 2 caracteres. No deben estar vacíos ni tener solo 1.
   // EN MODO DE PRUEBA se salta esta validación por completo — solo se exige
   // lo que ya se validó arriba (Turno y Operador, vía los campos "required").
-  if(!modoPrueba){
+  if(!modoPrueba && !_sinPersonal()){
     const camposTexto = form.querySelectorAll('input[type="text"]:not([data-estado])');
     let primerError = null;
     camposTexto.forEach(inp=>{
@@ -1645,6 +1653,7 @@ async function enviar(){
   if(hayAlertaBaterias) etiquetasAlerta.push("BATERÍAS");
   if(hayAlertaTermografia) etiquetasAlerta.push("TERMOGRAFÍA (" + bahiasConAlertaTermo.join(", ") + ")");
   if(_climaLluviaSinConfirmar) etiquetasAlerta.push("LLUVIA SIN CONFIRMAR");
+  if(_sinPersonal()) etiquetasAlerta.push(_sinPersonal().toUpperCase());
   formData.append("subject", modoPrueba
     ? `🧪 PRUEBA - ${sujetoBase}`
     : (etiquetasAlerta.length
@@ -1669,7 +1678,7 @@ async function enviar(){
       for(const [k,v] of formData.entries()) datosObj[k] = v;
       try{
         // El complemento no genera PDF aquí: el servidor arma el PDF completo.
-        if(!modoComplemento) await generarPDF(datosObj);
+        if(!modoComplemento && !_sinPersonal()) await generarPDF(datosObj);
       }catch(errPdf){
         console.error("PDF falló:", errPdf);
         statusEl.textContent = "✔ Lectura enviada. ⚠ El PDF no se pudo generar en este equipo; avisa al administrador.";
@@ -1680,6 +1689,8 @@ async function enviar(){
       var _notaFinal = "";
       if(modoComplemento){
         _notaFinal = "Complemento recibido. Se agregará a la lectura de este turno.";
+      } else if(_sinPersonal()){
+        _notaFinal = "Reporte enviado como «" + _sinPersonal() + "». Se avisó al supervisor para que lo valide.";
       } else if(_climaEsLluvia(_climaValor())){
         var _finTurno = (formData.get("Turno") === "Vespertino") ? "23:00" : "15:00";
         _notaFinal = "☔ Quedó pendiente la revisión del resto del equipo. Cuando deje de llover usa «Completar pendientes de lluvia» (arriba) antes de las " + _finTurno + ".";
@@ -1986,6 +1997,7 @@ function _llenarPersonal(){
     }
     sel.innerHTML = "";
     op("", "-- selecciona --");
+    if(rol === "Operador") op("Sin operador", "Sin operador");
     if(rol === "Ayudante") op("Sin ayudante", "Sin ayudante");
     PERSONAL.forEach(function(n){ op(n, n); });
     op("__otro__", "Otro (escribir nombre)…");
@@ -2000,6 +2012,26 @@ function _actualizarPersona(rol){
   otro.style.display = esOtro ? "" : "none";
   val.value = esOtro ? _tituloNombre(otro.value) : sel.value;
   sel.classList.remove("campo-error");
+  _actualizarSinPersonal();
+}
+
+/* "Sin operador" / "Sin ayudante": no se exige llenar la lectura (no se puede dejar sola
+   la sala de control), pero se pide el motivo y se avisa al supervisor para que lo valide. */
+function _sinPersonal(){
+  var o = document.getElementById("valOperador").value;
+  var a = document.getElementById("valAyudante").value;
+  if(o === "Sin operador") return "Sin operador";
+  if(a === "Sin ayudante") return "Sin ayudante";
+  return "";
+}
+function _actualizarSinPersonal(){
+  var sp = _sinPersonal();
+  document.getElementById("valSinPersonal").value = sp;
+  document.getElementById("bloqueSinPersonal").style.display = sp ? "" : "none";
+  if(sp){
+    document.getElementById("avisoSinPersonal").textContent =
+      "⚠ Marcaste «" + sp + "». Ya no es obligatorio llenar la lectura, pero se avisará al supervisor para que lo valide. Escribe el motivo.";
+  }
 }
 
 function _validarPersonal(){
@@ -2022,6 +2054,15 @@ function _validarPersonal(){
   });
   if(!res && vals.Operador && vals.Ayudante && vals.Operador.toLowerCase() === vals.Ayudante.toLowerCase()){
     res = { mensaje: "El operador y el ayudante no pueden ser la misma persona.", campo: document.getElementById("selAyudante") };
+  }
+  if(!res && vals.Operador === "Sin operador" && vals.Ayudante === "Sin ayudante"){
+    res = { mensaje: "No pueden faltar el operador y el ayudante a la vez: selecciona al menos a una persona.", campo: document.getElementById("selAyudante") };
+  }
+  if(!res && _sinPersonal()){
+    var mot = document.getElementById("motivoSinPersonal");
+    if(mot.value.trim().length < 5){
+      res = { mensaje: "Escribe el motivo por el que no hay " + _sinPersonal().replace("Sin ", "") + " (ej. falta de cobertura).", campo: mot };
+    }
   }
   return res;
 }
