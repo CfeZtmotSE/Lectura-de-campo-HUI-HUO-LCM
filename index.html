@@ -502,7 +502,7 @@
     </div>
     <div class="header-badges">
       <span class="badge">Captura en sitio · Turno actual</span>
-      <span class="badge" style="border-color:#78BE20;color:#78BE20;">v36</span>
+      <span class="badge" style="border-color:#78BE20;color:#78BE20;">v37</span>
       <span class="badge" id="badgeConfig" title="Sello de configuración — debe coincidir con el valor oficial. Si es distinto, el archivo fue modificado." style="border-color:#78BE20;color:#78BE20;font-family:'Consolas',monospace;">Cfg: ----</span>
       <span class="badge" id="badgeTurnoSemana" style="border-color:#78BE20;color:#78BE20;"></span>
       <span class="badge" id="badgeActividad" style="border-color:#f59e0b;color:#f59e0b;"></span>
@@ -521,7 +521,7 @@
   <div id="avisoLluvia"></div>
   <div id="avisoComplemento">☔ COMPLEMENTO POR LLUVIA — Selecciona el MISMO turno de la lectura que quedó pendiente y llena solo lo que faltó revisar. <u onclick="_activarComplemento(false)">Cancelar</u></div>
   <form id="lecturaForm">
-    <input type="hidden" name="_app_version" value="v36">
+    <input type="hidden" name="_app_version" value="v37">
 
     <!-- ===================== ENCABEZADO ===================== -->
     <div class="section">
@@ -553,6 +553,12 @@
           </div>
           <div id="bloqueSinPersonal" style="display:none; grid-column:1/-1;">
             <div class="clima-info warn" id="avisoSinPersonal"></div>
+            <div class="field">
+              <label id="lblFalto">¿Quién faltó?</label>
+              <select id="selFalto"></select>
+              <input type="text" id="otroFalto" class="otro-nombre" placeholder="Escribe el nombre completo" autocomplete="off" style="display:none">
+              <input type="hidden" name="Quien Falto" id="valFalto" value="">
+            </div>
             <div class="field">
               <label>Motivo (obligatorio)</label>
               <input type="text" id="motivoSinPersonal" name="Motivo Sin Personal" placeholder="Ej. falta de cobertura, incapacidad, permiso..." autocomplete="off">
@@ -1647,6 +1653,11 @@ async function enviar(){
   const hayAlertaTermografia = bahiasConAlertaTermo.length > 0;
 
   const formData = new FormData(form);
+  if(_sinPersonal()){
+    const _obsSin = "FALTÓ: " + formData.get("Quien Falto") + " (" + _sinPersonal() + "). Motivo: " + formData.get("Motivo Sin Personal") + ".";
+    const _obsUsr = String(formData.get("Observaciones") || "").trim();
+    formData.set("Observaciones", _obsSin + (_obsUsr ? " | " + _obsUsr : ""));
+  }
   formData.append("access_key", WEB3FORMS_KEY);
   const sujetoBase = `Lectura de campo HUI/HUO/LCM - ${formData.get("Fecha")} - Turno ${formData.get("Turno")}` + (modoComplemento ? " - COMPLEMENTO POR LLUVIA" : "");
   const etiquetasAlerta = [];
@@ -1989,7 +2000,7 @@ function _tituloNombre(t){
 }
 
 function _llenarPersonal(){
-  ["Operador","Ayudante"].forEach(function(rol){
+  ["Operador","Ayudante","Falto"].forEach(function(rol){
     var sel = document.getElementById("sel" + rol);
     function op(valor, texto){
       var o = document.createElement("option");
@@ -2030,7 +2041,8 @@ function _actualizarSinPersonal(){
   document.getElementById("bloqueSinPersonal").style.display = sp ? "" : "none";
   if(sp){
     document.getElementById("avisoSinPersonal").textContent =
-      "⚠ Marcaste «" + sp + "». Ya no es obligatorio llenar la lectura, pero se avisará al supervisor para que lo valide. Escribe el motivo.";
+      "⚠ Marcaste «" + sp + "». Ya no es obligatorio llenar la lectura, pero se avisará al supervisor para que lo valide. Indica quién faltó y el motivo.";
+    document.getElementById("lblFalto").textContent = "¿Quién faltó? (nombre del " + sp.replace("Sin ", "") + " que no vino)";
   }
 }
 
@@ -2064,17 +2076,30 @@ function _validarPersonal(){
       res = { mensaje: "Escribe el motivo por el que no hay " + _sinPersonal().replace("Sin ", "") + " (ej. falta de cobertura).", campo: mot };
     }
   }
+  if(!res && _sinPersonal()){
+    _actualizarPersona("Falto");
+    var sf = document.getElementById("selFalto");
+    var nf = document.getElementById("valFalto").value;
+    var quien = _sinPersonal().replace("Sin ", "");
+    if(!sf.value){
+      res = { mensaje: "Selecciona quién faltó (nombre del " + quien + " que no vino).", campo: sf };
+    } else if(sf.value === "__otro__" && (nf.length < 5 || nf.indexOf(" ") < 0)){
+      res = { mensaje: "Escribe el nombre completo de quien faltó.", campo: document.getElementById("otroFalto") };
+    } else if(nf.toLowerCase() === (vals.Operador || "").toLowerCase() || nf.toLowerCase() === (vals.Ayudante || "").toLowerCase()){
+      res = { mensaje: "Quien faltó no puede ser la misma persona que está presente.", campo: sf };
+    }
+  }
   return res;
 }
 
 _llenarPersonal();
-["Operador","Ayudante"].forEach(function(rol){
+["Operador","Ayudante","Falto"].forEach(function(rol){
   document.getElementById("sel" + rol).addEventListener("change", function(){ _actualizarPersona(rol); });
   document.getElementById("otro" + rol).addEventListener("input", function(){ _actualizarPersona(rol); });
 });
 document.getElementById("lecturaForm").addEventListener("reset", function(){
   setTimeout(function(){
-    ["Operador","Ayudante"].forEach(function(rol){
+    ["Operador","Ayudante","Falto"].forEach(function(rol){
       document.getElementById("otro" + rol).value = "";
       _actualizarPersona(rol);
     });
